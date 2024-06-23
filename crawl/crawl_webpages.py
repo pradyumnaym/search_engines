@@ -1,5 +1,6 @@
 
 import os
+import gc
 import json
 import time
 import urllib
@@ -263,6 +264,8 @@ def crawl_webpages():
                 print(f"Failed to crawl {len(current_crawl_state['failed'])} URLs")
                 print(f"Rejected {len(current_crawl_state['rejected'])} URLs")
                 print("--------------------------------------------------")
+
+                gc.collect()
         
         time.sleep(random.uniform(1, 2))
 

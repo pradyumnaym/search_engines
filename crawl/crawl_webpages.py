@@ -109,10 +109,11 @@ def check_url_relevance(url_content):
     key_words = ["tübingen", "tuebingen", "palmer", "72070", "72072", "72074", "72076", "tubingen", "eberhard karl"]
 
     for keyword in key_words:
-        if keyword in url_content:
+        if keyword in url_content.lower():
             return True
 
     return False
+
 def extract_links(current_url, url_content):
     """extract the links from the HTML content of the URL.
     We can use BeautifulSoup to extract the links from the HTML content

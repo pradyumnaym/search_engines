@@ -1,3 +1,8 @@
 requests==2.32.3
 python-dotenv==1.0.1
 tqdm==4.66.4
+requests_ip_rotator==1.0.14
+validators==0.28.3
+multiprocess==0.70.16
+rocksdict==0.3.23
+bs4==0.0.2

@@ -39,6 +39,7 @@ with open('../data/frontier_urls.pkl', 'rb') as f:
 print(f"Loaded {len(frontier)} URLs from the frontier")
 
 frontier = [(url, MAX_DEPTH) for url in frontier]
+
 current_crawl_state = {
     "frontier": frontier,           # list of URLs to be crawled
     "visited": set(),               # list of URLs that have been crawled (we only store the URL, not the content)
@@ -199,14 +200,24 @@ def crawl_webpages():
 
     """
 
-    while True:
+    retry_count = 0
 
+    while True:
+        
         with frontier_lock:
             # we pop a random URL - it is important to randomize the order of the URLs 
             # to avoid multiple crawlers hitting the same website at the same time
-            url, depth = frontier.pop(random.randrange(len(frontier)))
 
-        if url in current_crawl_state["visited"]:
+            if len(frontier) == 0:
+                retry_count += 1
+
+                if retry_count > 10:
+                    break
+            else:
+                retry_count = 0
+                url, depth = frontier.pop(random.randrange(len(frontier)))
+
+        if url in current_crawl_state["visited"] or url in current_crawl_state["rejected"]:
             continue
         
         try:
@@ -215,7 +226,6 @@ def crawl_webpages():
             print(f"Failed to crawl {url}: {e}")
             current_crawl_state["failed"].append((url, str(e)))
             continue
-
 
         # check if the URL is relevant
         if not check_url_relevance(url_content):
@@ -240,6 +250,14 @@ def crawl_webpages():
             if time.time() - current_crawl_state["last_saved"] > 240:
                 save_state()
                 current_crawl_state["last_saved"] = time.time()
+
+                print("--------------------------------------------------")
+                print(f"Saved state at {time.time()}")
+                print(f"Visited {len(current_crawl_state['visited'])} URLs")
+                print(f"Frontier has {len(frontier)} URLs")
+                print(f"Failed to crawl {len(current_crawl_state['failed'])} URLs")
+                print(f"Rejected {len(current_crawl_state['rejected'])} URLs")
+                print("--------------------------------------------------")
         
         time.sleep(random.uniform(1, 2))
 

@@ -268,8 +268,7 @@ def crawl_webpages():
 
                 gc.collect()
         
-        time.sleep(random.uniform(1, 2))
-
+        time.sleep(1)
 
 
 def signal_handler(sig, frame):

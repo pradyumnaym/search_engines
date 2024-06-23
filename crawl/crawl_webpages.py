@@ -109,7 +109,7 @@ def check_url_relevance(url_content):
 
     """
 
-    key_words = ["tübingen", "tuebingen", "palmer", "72070", "72072", "72074", "72076", "tubingen", "eberhard karl"]
+    key_words = ["tübingen", "tuebingen", "boris palmer", "72070", "72072", "72074", "72076", "tubingen", "eberhard karl"]
 
     for keyword in key_words:
         if keyword in url_content.lower():

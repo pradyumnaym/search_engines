@@ -50,6 +50,7 @@ current_crawl_state = {
     "last_saved": time.time()       # timestamp of the last save
 }
 
+del frontier
 
 # #### Storing the crawl results
 # 
@@ -214,14 +215,14 @@ def crawl_webpages():
             # we pop a random URL - it is important to randomize the order of the URLs 
             # to avoid multiple crawlers hitting the same website at the same time
 
-            if len(frontier) == 0:
+            if len(current_crawl_state['frontier']) == 0:
                 retry_count += 1
 
                 if retry_count > 10:
                     break
             else:
                 retry_count = 0
-                url, depth = frontier.pop(random.randrange(len(frontier)))
+                url, depth = current_crawl_state['frontier'].pop(random.randrange(len(current_crawl_state['frontier'])))
 
         if url in current_crawl_state["visited"] or url in current_crawl_state["rejected"]:
             continue
@@ -249,7 +250,7 @@ def crawl_webpages():
             # add the links to the frontier
             for link in links:
                 if link not in current_crawl_state["visited"] and link not in current_crawl_state["failed"]:
-                    frontier.append((link, depth-1))
+                    current_crawl_state['frontier'].append((link, depth-1))
 
         # save the state every 240 seconds
         with save_lock:
@@ -260,7 +261,7 @@ def crawl_webpages():
                 print("--------------------------------------------------")
                 print(f"Saved state at {time.time()}")
                 print(f"Visited {len(current_crawl_state['visited'])} URLs")
-                print(f"Frontier has {len(frontier)} URLs")
+                print(f"Frontier has {len(current_crawl_state['frontier'])} URLs")
                 print(f"Failed to crawl {len(current_crawl_state['failed'])} URLs")
                 print(f"Rejected {len(current_crawl_state['rejected'])} URLs")
                 print("--------------------------------------------------")

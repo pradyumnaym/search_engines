@@ -44,8 +44,8 @@ frontier = [(url, MAX_DEPTH) for url in frontier]
 current_crawl_state = {
     "frontier": frontier,           # list of URLs to be crawled
     "visited": set(),               # list of URLs that have been crawled (we only store the URL, not the content)
-    "failed": [],                   # list of URLs that have failed to be crawled.
-    "rejected": [],                 # list of URLs that were rejected based on key word relevance
+    "failed": set(),                   # list of URLs that have failed to be crawled.
+    "rejected": set(),                 # list of URLs that were rejected based on key word relevance
     "last_saved": time.time()       # timestamp of the last save
 }
 
@@ -226,12 +226,12 @@ def crawl_webpages():
             url_content = get_url_content(url)
         except Exception as e:
             print(f"Failed to crawl {url}: {e}")
-            current_crawl_state["failed"].append((url, str(e)))
+            current_crawl_state["failed"].add((url, str(e)))
             continue
 
         # check if the URL is relevant
         if not check_url_relevance(url_content):
-            current_crawl_state["rejected"].append(url)
+            current_crawl_state["rejected"].add(url)
             db[url] = extract_text(url_content)
             continue
 

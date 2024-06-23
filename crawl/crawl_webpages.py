@@ -49,18 +49,21 @@ current_crawl_state = {
     "last_saved": time.time()       # timestamp of the last save
 }
 
-def save_state():
-    """
-    Save the current crawl state to disk as a pickle file.
-    """
-    with open('../data/crawl_state.pkl', 'wb') as f:
-        pickle.dump(current_crawl_state, f)
+
 # #### Storing the crawl results
 # 
 # We store the results of the crawl in a `rocksDB` instance, which is a simple key-value store. We use the `rocksdict` library that provides a nice, dict-like interface to the key-value store. This takes care of caching data on memory, and flushing the results to the database as required.
 
 # open the dictionary file
 db = Rdict('../data/crawl_data')
+
+def save_state():
+    """
+    Save the current crawl state to disk as a pickle file.
+    """
+    db.flush()
+    with open('../data/crawl_state.pkl', 'wb') as f:
+        pickle.dump(current_crawl_state, f)
 
 if os.path.exists('../data/crawl_state.pkl'):
     with open('../data/crawl_state.pkl', 'rb') as f:

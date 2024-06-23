@@ -18,6 +18,9 @@ from bs4 import BeautifulSoup
 
 from rocksdict import Rdict, Options
 
+# TODOs:
+# change the domain waiting -> switch to a different url instead of waiting
+
 load_dotenv()
 # #### Crawler design
 # 
@@ -31,7 +34,7 @@ load_dotenv()
 # Enqueuing and dequeueing as simply done through list append and list pop operations. 
 
 MAX_DEPTH = 8                    # Maximum depth to crawl.
-TIME_BETWEEN_REQUESTS = 5        # Number of seconds to wait between requests to the same domain
+TIME_BETWEEN_REQUESTS = 1.25        # Number of seconds to wait between requests to the same domain
 
 # load the frontier URLs
 
@@ -88,7 +91,6 @@ if os.path.exists('../data/crawl_state.pkl'):
 
 
 frontier_lock = threading.Lock()    # lock to access the frontier - needed because we read the length - not atomic!
-save_lock = threading.Lock()        # lock to save the state - we don't want to save the state multiple times at the same time
 dict_read_lock = threading.Lock()   # lock to read from the dictionary - needed because reads are not atomic
 exit_event = threading.Event()      # Event to signal an exit to all threads.
 
@@ -207,21 +209,11 @@ def crawl_webpages():
 
     """
 
-    retry_count = 0
-
     while not exit_event.is_set():
         
         with frontier_lock:
             # we pop a random URL - it is important to randomize the order of the URLs 
             # to avoid multiple crawlers hitting the same website at the same time
-
-            if len(current_crawl_state['frontier']) == 0:
-                retry_count += 1
-
-                if retry_count > 10:
-                    break
-            else:
-                retry_count = 0
                 url, depth = current_crawl_state['frontier'].pop(random.randrange(len(current_crawl_state['frontier'])))
 
         if url in current_crawl_state["visited"] or url in current_crawl_state["rejected"]:
@@ -252,24 +244,6 @@ def crawl_webpages():
                 if link not in current_crawl_state["visited"] and link not in current_crawl_state["failed"]:
                     current_crawl_state['frontier'].append((link, depth-1))
 
-        # save the state every 240 seconds
-        with save_lock:
-            if time.time() - current_crawl_state["last_saved"] > 240:
-                save_state()
-                current_crawl_state["last_saved"] = time.time()
-
-                print("--------------------------------------------------")
-                print(f"Saved state at {time.time()}")
-                print(f"Visited {len(current_crawl_state['visited'])} URLs")
-                print(f"Frontier has {len(current_crawl_state['frontier'])} URLs")
-                print(f"Failed to crawl {len(current_crawl_state['failed'])} URLs")
-                print(f"Rejected {len(current_crawl_state['rejected'])} URLs")
-                print("--------------------------------------------------")
-
-                gc.collect()
-        
-        time.sleep(1)
-
 
 def signal_handler(sig, frame):
     print("KeyboardInterrupt received, shutting down...")
@@ -285,8 +259,22 @@ threads = [threading.Thread(target=crawl_webpages) for _ in range(8)]
 for thread in threads:
     thread.start()
 
-for thread in threads:
-    thread.join()
+while True:
+    if all([not thread.is_alive() for thread in threads]):
+        break
+    time.sleep(240)
+    save_state()
+    current_crawl_state["last_saved"] = time.time()
+    gc.collect()
+
+    print("--------------------------------------------------")
+    print(f"Saved state at {time.time()}")
+    print(f"Visited {len(current_crawl_state['visited'])} URLs")
+    print(f"Frontier has {len(current_crawl_state['frontier'])} URLs")
+    print(f"Failed to crawl {len(current_crawl_state['failed'])} URLs")
+    print(f"Rejected {len(current_crawl_state['rejected'])} URLs")
+    print("--------------------------------------------------")
+
 
 # save the final state
 save_state()  

@@ -188,16 +188,15 @@ def get_url_content(url):
     # We need to wait for two things: 
     # 1. We need to wait for at least 2 seconds before we crawl the same domain again
     # 2. We need to wait for the lock to be released before we can check the domain_last_accessed
-    while True:
 
-        with dict_read_lock:
-            last_accessed = domain_last_accessed.get(urllib.parse.urlparse(url).netloc)
+    with dict_read_lock:
+        last_accessed = domain_last_accessed.get(urllib.parse.urlparse(url).netloc)
 
-            if last_accessed is None or time.time() - last_accessed >= TIME_BETWEEN_REQUESTS:
-                # we can access the domain. We need to update the last accessed time
-                domain_last_accessed[urllib.parse.urlparse(url).netloc] = time.time()
-                break
-        time.sleep(TIME_BETWEEN_REQUESTS - (time.time() - last_accessed))
+        if not (last_accessed is None or time.time() - last_accessed >= TIME_BETWEEN_REQUESTS):
+            return None
+        
+        # we can access the domain. We need to update the last accessed time
+        domain_last_accessed[urllib.parse.urlparse(url).netloc] = time.time()
 
     # get the content of the URL
     return requests.get(url, timeout=30).text
@@ -221,6 +220,11 @@ def crawl_webpages():
         
         try:
             url_content = get_url_content(url)
+
+            if url_content is None:
+                current_crawl_state["frontier"].append((url, depth))
+                continue
+
         except Exception as e:
             print(f"Failed to crawl {url}: {e}")
             current_crawl_state["failed"].add((url, str(e)))

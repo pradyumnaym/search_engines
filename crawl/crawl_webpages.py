@@ -8,6 +8,7 @@ import random
 import validators
 import threading
 import pickle
+import signal
 from requests_ip_rotator import EXTRA_REGIONS, ApiGateway
 
 from dotenv import load_dotenv
@@ -84,6 +85,7 @@ if os.path.exists('../data/crawl_state.pkl'):
 frontier_lock = threading.Lock()    # lock to access the frontier - needed because we read the length - not atomic!
 save_lock = threading.Lock()        # lock to save the state - we don't want to save the state multiple times at the same time
 dict_read_lock = threading.Lock()   # lock to read from the dictionary - needed because reads are not atomic
+exit_event = threading.Event()      # Event to signal an exit to all threads.
 
 # dictionary to store the last time a domain was accessed
 # we can use this to avoid hitting the same domain too frequently across different crawlers
@@ -202,7 +204,7 @@ def crawl_webpages():
 
     retry_count = 0
 
-    while True:
+    while not exit_event.is_set():
         
         with frontier_lock:
             # we pop a random URL - it is important to randomize the order of the URLs 
@@ -261,6 +263,15 @@ def crawl_webpages():
         
         time.sleep(random.uniform(1, 2))
 
+
+
+def signal_handler(sig, frame):
+    print("KeyboardInterrupt received, shutting down...")
+    exit_event.set()  # Signal all threads to exit
+
+# Setup signal handling
+signal.signal(signal.SIGINT, signal_handler)
+
 # start the crawler threads
 
 threads = [threading.Thread(target=crawl_webpages) for _ in range(8)]
@@ -272,5 +283,6 @@ for thread in threads:
     thread.join()
 
 # save the final state
+save_state()  
 
 # requests.get('https://www.wein-bauer.de/Weine/')

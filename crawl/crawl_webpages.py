@@ -263,11 +263,18 @@ threads = [threading.Thread(target=crawl_webpages) for _ in range(8)]
 for thread in threads:
     thread.start()
 
+print("--------------------------------------------------")
+print("Started the crawler threads")
+print("--------------------------------------------------")
+
 while True:
+    print("--------------------------------------------------")
+    print("Checking if all threads have finished...")
+    print("--------------------------------------------------")
     if all([not thread.is_alive() for thread in threads]):
         print("Exiting as all threads have finished.")
         break
-    time.sleep(240)
+    time.sleep(30)
     save_state()
     current_crawl_state["last_saved"] = time.time()
     gc.collect()

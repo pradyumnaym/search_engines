@@ -305,7 +305,7 @@ while True:
     if all([not thread.is_alive() for thread in threads]):
         print("Exiting as all threads have finished.")
         break
-    time.sleep(300)
+    time.sleep(30)
     save_state()
     current_crawl_state["last_saved"] = time.time()
 

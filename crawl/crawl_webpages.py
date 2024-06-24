@@ -10,8 +10,6 @@ import validators
 import threading
 import pickle
 import signal
-import asyncio
-import aiohttp
 from requests_ip_rotator import EXTRA_REGIONS, ApiGateway
 
 from dotenv import load_dotenv

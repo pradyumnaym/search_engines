@@ -18,9 +18,6 @@ from bs4 import BeautifulSoup
 
 from rocksdict import Rdict, Options
 
-# TODOs:
-# change the domain waiting -> switch to a different url instead of waiting
-
 load_dotenv()
 # #### Crawler design
 # 
@@ -67,8 +64,15 @@ def save_state():
     Save the current crawl state to disk as a pickle file.
     """
     db.flush()
+    state = {}
+    for key in current_crawl_state:
+        state[key] = current_crawl_state[key].copy()
+
+    db.flush()
     with open('../data/crawl_state.pkl', 'wb') as f:
-        pickle.dump(current_crawl_state, f)
+        pickle.dump(state, f)
+
+    del state
 
 if os.path.exists('../data/crawl_state.pkl'):
     with open('../data/crawl_state.pkl', 'rb') as f:

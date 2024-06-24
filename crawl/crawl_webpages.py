@@ -264,7 +264,7 @@ for thread in threads:
     thread.start()
 
 print("--------------------------------------------------")
-print("Started the crawler threads")
+print(f"Started {len(threads)} crawler threads")
 print("--------------------------------------------------")
 
 while True:

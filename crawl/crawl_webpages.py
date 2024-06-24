@@ -265,6 +265,7 @@ for thread in threads:
 
 while True:
     if all([not thread.is_alive() for thread in threads]):
+        print("Exiting as all threads have finished.")
         break
     time.sleep(240)
     save_state()

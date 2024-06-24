@@ -10,6 +10,8 @@ import validators
 import threading
 import pickle
 import signal
+import asyncio
+import aiohttp
 from requests_ip_rotator import EXTRA_REGIONS, ApiGateway
 
 from dotenv import load_dotenv
@@ -30,9 +32,9 @@ load_dotenv()
 # 
 # Enqueuing and dequeueing as simply done through list append and list pop operations. 
 
-MAX_DEPTH = 6                    # Maximum depth to crawl.
-TIME_BETWEEN_REQUESTS = 0.5        # Number of seconds to wait between requests to the same domain
-EXPAND_FRONTIER = 0.07              # Probability of expanding the frontier
+MAX_DEPTH = 7                     # Maximum depth to crawl.
+TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
+EXPAND_FRONTIER = 0.05             # Probability of expanding the frontier
 
 # load the frontier URLs
 
@@ -73,7 +75,6 @@ def save_state():
         else:
             state[key] = current_crawl_state[key]
 
-    db.flush()
     with open('../data/crawl_state.pkl', 'wb') as f:
         pickle.dump(state, f)
 
@@ -102,6 +103,7 @@ if os.path.exists('../data/crawl_state.pkl'):
 frontier_lock = threading.Lock()    # lock to access the frontier - needed because we read the length - not atomic!
 dict_read_lock = threading.Lock()   # lock to read from the dictionary - needed because reads are not atomic
 exit_event = threading.Event()      # Event to signal an exit to all threads.
+thread_local = threading.local()    # thread local storage to store the session object
 
 # dictionary to store the last time a domain was accessed
 # we can use this to avoid hitting the same domain too frequently across different crawlers
@@ -179,7 +181,7 @@ def extract_text(url_content):
     soup = BeautifulSoup(url_content, 'html.parser')
     return soup.get_text(separator=' ', strip=True)
 
-def get_url_content(url):
+def get_url_content(url, session):
     """get the content of the URL using the requests library.
     We need to check the previous access time of the domain before we can access it
     
@@ -208,7 +210,7 @@ def get_url_content(url):
         domain_last_accessed[urllib.parse.urlparse(url).netloc] = time.time()
 
     # get the content of the URL
-    return requests.get(url, timeout=30).text
+    return session.get(url, timeout=30).text
 
 def crawl_webpages():
     """crawl the webpages in the frontier.
@@ -216,6 +218,8 @@ def crawl_webpages():
     This function will run indefinitely and will crawl the webpages in the frontier.
 
     """
+
+    session = create_session()
 
     while not exit_event.is_set():
         
@@ -228,7 +232,7 @@ def crawl_webpages():
             continue
         
         try:
-            url_content = get_url_content(url)
+            url_content = get_url_content(url, session)
 
             if url_content is None:
                 current_crawl_state["frontier"].append((url, depth))
@@ -260,12 +264,23 @@ def crawl_webpages():
         if depth > 0:
             # add the links to the frontier
             for link in links:
-                if link not in current_crawl_state["visited"] and link not in current_crawl_state["failed"]:
+                if link not in current_crawl_state["visited"] \
+                    and link not in current_crawl_state["failed"] \
+                    and link not in current_crawl_state["rejected"] \
+                    and link not in current_crawl_state["frontier"] \
+                    and link not in current_crawl_state["to_visit"] \
+                    and validators.url(link):
+
                     # add the link to the frontier with a probability to avoid the frontier becoming too large
                     if random.random() < EXPAND_FRONTIER:
                         current_crawl_state["frontier"].append((link, depth-1))
                     else:
                         current_crawl_state["to_visit"].add((link, depth-1))
+
+def create_session():
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+    return thread_local.session
 
 def signal_handler(sig, frame):
     print("KeyboardInterrupt received, shutting down...")
@@ -292,10 +307,9 @@ while True:
     if all([not thread.is_alive() for thread in threads]):
         print("Exiting as all threads have finished.")
         break
-    time.sleep(30)
+    time.sleep(300)
     save_state()
     current_crawl_state["last_saved"] = time.time()
-    gc.collect()
 
     print("--------------------------------------------------")
     print(f"Saved state at {time.time()}")

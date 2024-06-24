@@ -30,8 +30,9 @@ load_dotenv()
 # 
 # Enqueuing and dequeueing as simply done through list append and list pop operations. 
 
-MAX_DEPTH = 8                    # Maximum depth to crawl.
-TIME_BETWEEN_REQUESTS = 1.25        # Number of seconds to wait between requests to the same domain
+MAX_DEPTH = 6                    # Maximum depth to crawl.
+TIME_BETWEEN_REQUESTS = 0.5        # Number of seconds to wait between requests to the same domain
+EXPAND_FRONTIER = 0.07              # Probability of expanding the frontier
 
 # load the frontier URLs
 
@@ -47,7 +48,8 @@ current_crawl_state = {
     "visited": set(),               # list of URLs that have been crawled (we only store the URL, not the content)
     "failed": set(),                   # list of URLs that have failed to be crawled.
     "rejected": set(),                 # list of URLs that were rejected based on key word relevance
-    "last_saved": time.time()       # timestamp of the last save
+    "last_saved": time.time(),       # timestamp of the last save
+    "to_visit": set()               # list of URLs that are yet to be crawled
 }
 
 del frontier
@@ -242,19 +244,28 @@ def crawl_webpages():
             current_crawl_state["rejected"].add(url)
             db[url] = extract_text(url_content)
             continue
+        
+        try:
+            # save the text content to the dictionary
+            db[url] = extract_text(url_content)
+            # extract the links from the content
+            links = extract_links(url, url_content)
+        except Exception as e:
+            print(f"Failed to extract links from {url}: {e}")
+            current_crawl_state["failed"].add(url)
+            continue
 
         current_crawl_state["visited"].add(url)
-        # save the text content to the dictionary
-        db[url] = extract_text(url_content)
-        # extract the links from the content
-        links = extract_links(url, url_content)
 
         if depth > 0:
             # add the links to the frontier
             for link in links:
                 if link not in current_crawl_state["visited"] and link not in current_crawl_state["failed"]:
-                    current_crawl_state['frontier'].append((link, depth-1))
-
+                    # add the link to the frontier with a probability to avoid the frontier becoming too large
+                    if random.random() < EXPAND_FRONTIER:
+                        current_crawl_state["frontier"].append((link, depth-1))
+                    else:
+                        current_crawl_state["to_visit"].add((link, depth-1))
 
 def signal_handler(sig, frame):
     print("KeyboardInterrupt received, shutting down...")

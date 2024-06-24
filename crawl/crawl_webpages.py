@@ -66,7 +66,10 @@ def save_state():
     db.flush()
     state = {}
     for key in current_crawl_state:
-        state[key] = current_crawl_state[key].copy()
+        if isinstance(current_crawl_state[key], set) or isinstance(current_crawl_state[key], list):
+            state[key] = current_crawl_state[key].copy()
+        else:
+            state[key] = current_crawl_state[key]
 
     db.flush()
     with open('../data/crawl_state.pkl', 'wb') as f:
@@ -262,7 +265,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # start the crawler threads
 
-threads = [threading.Thread(target=crawl_webpages) for _ in range(8)]
+threads = [threading.Thread(target=crawl_webpages) for _ in range(1024)]
 
 for thread in threads:
     thread.start()

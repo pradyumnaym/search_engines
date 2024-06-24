@@ -10,6 +10,8 @@ import validators
 import threading
 import pickle
 import signal
+import asyncio
+import aiohttp
 from requests_ip_rotator import EXTRA_REGIONS, ApiGateway
 
 from dotenv import load_dotenv
@@ -179,7 +181,7 @@ def extract_text(url_content):
     soup = BeautifulSoup(url_content, 'html.parser')
     return soup.get_text(separator=' ', strip=True)
 
-def get_url_content(url, session):
+async def get_url_content(url, session):
     """get the content of the URL using the requests library.
     We need to check the previous access time of the domain before we can access it
     
@@ -208,77 +210,84 @@ def get_url_content(url, session):
         domain_last_accessed[urllib.parse.urlparse(url).netloc] = time.time()
 
     # get the content of the URL
-    return session.get(url, timeout=30).text
+    async with session.get(url, timeout=30) as response:
+        return await response.text()
 
-def crawl_webpages():
+async def crawl_webpages():
     """crawl the webpages in the frontier.
 
     This function will run indefinitely and will crawl the webpages in the frontier.
 
     """
+    async with aiohttp.ClientSession() as session: 
 
-    session = create_session()
+        while not exit_event.is_set():
+            
+            with frontier_lock:
+                # we pop a random URL - it is important to randomize the order of the URLs 
+                # to avoid multiple crawlers hitting the same website at the same time
+                    url, depth = current_crawl_state['frontier'].pop(random.randrange(len(current_crawl_state['frontier'])))
 
-    while not exit_event.is_set():
-        
-        with frontier_lock:
-            # we pop a random URL - it is important to randomize the order of the URLs 
-            # to avoid multiple crawlers hitting the same website at the same time
-                url, depth = current_crawl_state['frontier'].pop(random.randrange(len(current_crawl_state['frontier'])))
+            if url in current_crawl_state["visited"] or url in current_crawl_state["rejected"]:
+                continue
+            
+            try:
+                url_content = await get_url_content(url, session)
 
-        if url in current_crawl_state["visited"] or url in current_crawl_state["rejected"]:
-            continue
-        
-        try:
-            url_content = get_url_content(url, session)
+                if url_content is None:
+                    current_crawl_state["frontier"].append((url, depth))
+                    continue
 
-            if url_content is None:
-                current_crawl_state["frontier"].append((url, depth))
+            except Exception as e:
+                print(f"Failed to crawl {url}: {e}")
+                current_crawl_state["failed"].add((url, str(e)))
                 continue
 
-        except Exception as e:
-            print(f"Failed to crawl {url}: {e}")
-            current_crawl_state["failed"].add((url, str(e)))
-            continue
+            # check if the URL is relevant
+            if not check_url_relevance(url_content):
+                current_crawl_state["rejected"].add(url)
+                db[url] = extract_text(url_content)
+                continue
+            
+            try:
+                # save the text content to the dictionary
+                db[url] = extract_text(url_content)
+                # extract the links from the content
+                links = extract_links(url, url_content)
+            except Exception as e:
+                print(f"Failed to extract links from {url}: {e}")
+                current_crawl_state["failed"].add(url)
+                continue
 
-        # check if the URL is relevant
-        if not check_url_relevance(url_content):
-            current_crawl_state["rejected"].add(url)
-            db[url] = extract_text(url_content)
-            continue
-        
-        try:
-            # save the text content to the dictionary
-            db[url] = extract_text(url_content)
-            # extract the links from the content
-            links = extract_links(url, url_content)
-        except Exception as e:
-            print(f"Failed to extract links from {url}: {e}")
-            current_crawl_state["failed"].add(url)
-            continue
+            current_crawl_state["visited"].add(url)
 
-        current_crawl_state["visited"].add(url)
+            if depth > 0:
+                # add the links to the frontier
+                for link in links:
+                    if link not in current_crawl_state["visited"] \
+                        and link not in current_crawl_state["failed"] \
+                        and link not in current_crawl_state["rejected"] \
+                        and link not in current_crawl_state["frontier"] \
+                        and link not in current_crawl_state["to_visit"] \
+                        and validators.url(link):
 
-        if depth > 0:
-            # add the links to the frontier
-            for link in links:
-                if link not in current_crawl_state["visited"] \
-                    and link not in current_crawl_state["failed"] \
-                    and link not in current_crawl_state["rejected"] \
-                    and link not in current_crawl_state["frontier"] \
-                    and link not in current_crawl_state["to_visit"] \
-                    and validators.url(link):
-
-                    # add the link to the frontier with a probability to avoid the frontier becoming too large
-                    if random.random() < EXPAND_FRONTIER:
-                        current_crawl_state["frontier"].append((link, depth-1))
-                    else:
-                        current_crawl_state["to_visit"].add((link, depth-1))
+                        # add the link to the frontier with a probability to avoid the frontier becoming too large
+                        if random.random() < EXPAND_FRONTIER:
+                            current_crawl_state["frontier"].append((link, depth-1))
+                        else:
+                            current_crawl_state["to_visit"].add((link, depth-1))
 
 def create_session():
     if not hasattr(thread_local, "session"):
         thread_local.session = requests.Session()
     return thread_local.session
+
+def start_crawl():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(crawl_webpages())
+    loop.close()
 
 def signal_handler(sig, frame):
     print("KeyboardInterrupt received, shutting down...")
@@ -289,7 +298,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # start the crawler threads
 
-threads = [threading.Thread(target=crawl_webpages) for _ in range(1024)]
+threads = [threading.Thread(target=start_crawl) for _ in range(256)]
 
 for thread in threads:
     thread.start()

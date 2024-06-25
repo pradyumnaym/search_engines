@@ -138,7 +138,7 @@ def check_url_relevance(url_content):
 
     return False
 
-def extract_links(current_url, url_content):
+def extract_links(current_url, url_content, max_links=50):
     """extract the links from the HTML content of the URL.
     We can use BeautifulSoup to extract the links from the HTML content
     We need to take care of relative URLs and convert them to absolute URLs
@@ -163,6 +163,9 @@ def extract_links(current_url, url_content):
         href = a_tag['href']
         absolute_url = urllib.parse.urljoin(current_url, href)
         links.append(absolute_url)
+
+    if len(links) > max_links:
+        links = random.sample(links, max_links)
     
     return links
 

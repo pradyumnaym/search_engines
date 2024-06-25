@@ -13,6 +13,7 @@ import signal
 import fitz
 import asyncio
 import aiohttp
+from ftlangdetect import detect
 
 from requests_ip_rotator import EXTRA_REGIONS, ApiGateway
 from multiprocessing import Pool, cpu_count
@@ -36,7 +37,7 @@ load_dotenv()
 
 MAX_DEPTH = 7                     # Maximum depth to crawl.
 TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
-EXPAND_FRONTIER = 0.3             # Probability of expanding the frontier
+EXPAND_FRONTIER = 0.5             # Probability of expanding the frontier
 PARALLEL_REQUESTS = 1024          # Number of parallel requests to make
 STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
 
@@ -138,7 +139,7 @@ def check_url_relevance(url_content):
 
     return False
 
-def extract_links(current_url, url_content, max_links=50):
+def extract_links(current_url, url_content, max_links=60):
     """extract the links from the HTML content of the URL.
     We can use BeautifulSoup to extract the links from the HTML content
     We need to take care of relative URLs and convert them to absolute URLs
@@ -275,9 +276,16 @@ def get_url_text_and_links(args):
                 text += page.get_text()
 
             pdf_document.close()
-            return text, []
+            links = []
         
-        return extract_text(url_content), extract_links(url, url_content)
+        else:
+            text, links = extract_text(url_content), extract_links(url, url_content)
+
+        if detect(text.replace('\n', ' '), low_memory=False)['lang'] != 'en':
+            return None, []
+        
+        return text, links
+            
     except Exception as e:
         print(f"Failed to extract text and links from URL: {e}")
         return None, None
@@ -304,6 +312,12 @@ async def crawl_webpages():
             current_crawl_state['all_discovered_urls'].add(url)
 
             if url_text is None:
+                
+                #language does not match.
+                if url_links is not None:
+                    current_crawl_state['rejected'].add(url)
+
+                # failed to fetch the URL content
                 current_crawl_state["failed"].add(url)
                 continue
 

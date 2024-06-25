@@ -8,3 +8,4 @@ rocksdict==0.3.23
 bs4==0.0.2
 aiohttp==3.9.5
 PyMuPDF==1.24.5
+fasttext-langdetect==1.0.5

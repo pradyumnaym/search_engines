@@ -139,7 +139,7 @@ def check_url_relevance(url_content):
 
     return False
 
-def extract_links(current_url, url_content, max_links=60):
+def extract_links(current_url, url_content, max_links=100):
     """extract the links from the HTML content of the URL.
     We can use BeautifulSoup to extract the links from the HTML content
     We need to take care of relative URLs and convert them to absolute URLs
@@ -318,6 +318,7 @@ async def crawl_webpages():
                 
                 #language does not match.
                 if url_links is not None:
+                    db[url] = url_text
                     current_crawl_state['rejected'].add(url)
 
                 # failed to fetch the URL content

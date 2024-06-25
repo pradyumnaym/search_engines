@@ -10,6 +10,7 @@ import validators
 import threading
 import pickle
 import signal
+import fitz
 import asyncio
 import aiohttp
 
@@ -201,6 +202,8 @@ async def get_url_content(url):
     async with aiohttp.ClientSession(connector=connector) as session:
         try:
             async with session.get(url, timeout=30) as response:
+                if url.endswith('.pdf'):
+                    return await response.read()
                 return await response.text()
         except aiohttp.ClientError as e:
             print(f"Failed to fetch {url}: {e}")
@@ -255,6 +258,17 @@ def get_url_text_and_links(args):
         return None, None
     
     try:
+
+        if isinstance(url_content, bytes):
+            pdf_document = fitz.open(stream=url_content, filetype="pdf")
+            text = ""
+            for page_num in range(len(pdf_document)):
+                page = pdf_document[page_num]
+                text += page.get_text()
+
+            pdf_document.close()
+            return text, []
+        
         return extract_text(url_content), extract_links(url, url_content)
     except Exception as e:
         print(f"Failed to extract text and links from URL: {e}")
@@ -303,7 +317,8 @@ async def crawl_webpages():
         all_new_links = all_new_links - current_crawl_state['all_discovered_urls']
 
         for link in all_new_links:
-            if validators.url(link):
+            # check if it is a valid URL, and not an image or a video
+            if validators.url(link) and not any(url.endswith(x) for x in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm']):
                 current_crawl_state["frontier"].append((link, MAX_DEPTH, urllib.parse.urlparse(link).netloc))
                 # add the link to the frontier with a probability to avoid the frontier becoming too large
                 if random.random() < EXPAND_FRONTIER:

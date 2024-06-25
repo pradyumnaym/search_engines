@@ -20,4 +20,4 @@ We start gathering information about places in Tübingen using OpenStreetMaps. W
 
 4. `filter_english_data.ipynb`: A helper notebook to remove all German documents, and to edit the crawl state to only keep English documents.
 
-
+5. `keep_crawling.sh`: A bash script that restarts the crawler if it exits due to some unforeseen error.

@@ -209,17 +209,11 @@ async def get_url_content(url):
                 if url.endswith('.pdf'):
                     return await response.read()
                 return await response.text()
-        except aiohttp.ClientError as e:
+        except (aiohttp.ClientError, UnicodeDecodeError, ValueError, LookupError) as e:
             print(f"Failed to fetch {url}: {e}")
             return None
         except asyncio.TimeoutError:
             print(f"Failed to fetch {url}: Timeout")
-            return None
-        except UnicodeDecodeError as e:
-            print(f"Failed to fetch {url}: {e}")
-            return None
-        except ValueError as e:
-            print(f"Failed to fetch {url}: {e}")
             return None
 
 def sample_frontier():

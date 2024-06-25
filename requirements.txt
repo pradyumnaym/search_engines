@@ -6,3 +6,4 @@ validators==0.28.3
 multiprocess==0.70.16
 rocksdict==0.3.23
 bs4==0.0.2
+aiohttp==3.9.5

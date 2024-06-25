@@ -37,8 +37,8 @@ load_dotenv()
 MAX_DEPTH = 7                     # Maximum depth to crawl.
 TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
 EXPAND_FRONTIER = 0.3             # Probability of expanding the frontier
-PARALLEL_REQUESTS = 1024           # Number of parallel requests to make
-STOP_CRAWL = False                # Flag to stop the crawl
+PARALLEL_REQUESTS = 1024          # Number of parallel requests to make
+STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
 
 # load the frontier URLs
 
@@ -57,7 +57,12 @@ current_crawl_state = {
     "rejected": set(),                 # list of URLs that were rejected based on key word relevance
     "last_saved": time.time(),       # timestamp of the last save
     "to_visit": set(),               # list of URLs that are yet to be crawled
-    "all_discovered_urls": set([x[0] for x in frontier])      # list of all URLs that have been processed
+    "all_discovered_urls": set(
+            [
+                item[0] for item in frontier \
+                if not any(item[0].endswith(x) for x in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm'])
+            ]
+            )    # list of all URLs that have been processed
 }
 
 del frontier
@@ -180,23 +185,19 @@ def extract_text(url_content):
     return soup.get_text(separator=' ', strip=True)
 
 async def get_url_content(url):
-    """get the content of the URL using the requests library.
-    We need to check the previous access time of the domain before we can access it
-    
+    """fetch the content of the URL using aiohttp.
+    We use aiohttp to fetch the content of the URL asynchronously
+
     Arguments
     ---------
     url : str
-        the URL to crawl
+        the URL to fetch
 
     Returns
     -------
     str
         the content of the URL
-
     """
-    # We need to wait for two things: 
-    # 1. We need to wait for at least 2 seconds before we crawl the same domain again
-    # 2. We need to wait for the lock to be released before we can check the domain_last_accessed
 
     connector = aiohttp.TCPConnector(limit=None)
     async with aiohttp.ClientSession(connector=connector) as session:
@@ -219,8 +220,18 @@ async def get_url_content(url):
             return None
 
 def sample_frontier():
-    # Prepare a list of PARALLEL_REQUESTS URLs to crawl - choose randomly from the frontier
-    # for a domain, we choose at most 3 URLs to crawl in parallel
+    """sample the frontier to get a random sample of URLs to crawl.
+    We sample the frontier to get a random sample of URLs to crawl.
+
+    Returns
+    -------
+    list
+        list of URLs to crawl
+    list
+        list of depths of the URLs
+
+    """
+
     urls = []
     depths = []
     domains_frequency = {}
@@ -235,13 +246,13 @@ def sample_frontier():
     return urls, depths
 
 def get_url_text_and_links(args):
-    """get the text content and the links from the URL content.
-    This function is called by the crawler to get the text content and the links from the URL content
-    
+    """get the text content and links from the URL.
+    We extract the text content and links from the URL.
+
     Arguments
     ---------
-    url_content : str
-        the content of the URL
+    args : tuple
+        tuple containing the URL and the content of the URL
 
     Returns
     -------
@@ -327,15 +338,21 @@ async def crawl_webpages():
                     current_crawl_state["to_visit"].add((link, depth-1, urllib.parse.urlparse(link).netloc))
           
         save_state()
-        global STOP_CRAWL
-        if STOP_CRAWL:
+        if STOP_EVENT.is_set():
             break
 
 def signal_handler(sig, frame):
     print("KeyboardInterrupt received, shutting down...")
-    STOP_CRAWL = True
+    STOP_EVENT.set()
+
+# # Setup signal handling
+loop = asyncio.get_event_loop()
 
 # Setup signal handling
-signal.signal(signal.SIGINT, signal_handler)
+loop.add_signal_handler(signal.SIGINT, lambda: signal_handler(signal.SIGINT, None))
 
-asyncio.run(crawl_webpages())
+try:
+    loop.run_until_complete(crawl_webpages())
+finally:
+    loop.run_until_complete(loop.shutdown_asyncgens())
+    loop.close()

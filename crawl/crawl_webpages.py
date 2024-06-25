@@ -38,7 +38,7 @@ load_dotenv()
 MAX_DEPTH = 7                     # Maximum depth to crawl.
 TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
 EXPAND_FRONTIER = 0.5             # Probability of expanding the frontier
-PARALLEL_REQUESTS = 1024          # Number of parallel requests to make
+PARALLEL_REQUESTS = 2048          # Number of parallel requests to make
 STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
 
 # load the frontier URLs
@@ -240,6 +240,9 @@ def sample_frontier():
             urls.append(url)
             depths.append(depth)
             domains_frequency[domain] += 1
+
+        if len(urls) == PARALLEL_REQUESTS:
+            break
 
     return urls, depths
 

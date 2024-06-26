@@ -6,8 +6,8 @@ Please install all requirements using `pip install -r requirements.txt`.
 
 In case of install errors for fasttext on some distributions of Linux, please run the following two commands:
 
-1. `apt-get install build-essential -y` might be required for some linux distributions.
-2. `sudo apt-get install python3-dev`
+1. `apt-get install build-essential -y` 
+2. `apt-get install python3-dev`
 
 ### Files
 We start gathering information about places in Tübingen using OpenStreetMaps. We then use this data to generate some keywords using the LLM `Mistral-7B-Instruct-v0.3` . We then use these queries to generate a seed set of URLs for the frontier using an existing search engine. It is done in the following steps:

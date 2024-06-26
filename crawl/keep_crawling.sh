@@ -1,5 +1,5 @@
-while true
-do
+#!/bin/bash
 python crawl_webpages.py
-sleep 1
+while [ $? -ne 0 ]; do
+    python crawl_webpages.py
 done

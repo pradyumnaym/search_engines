@@ -40,6 +40,7 @@ TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests t
 EXPAND_FRONTIER = 0.5             # Probability of expanding the frontier
 PARALLEL_REQUESTS = 3072          # Number of parallel requests to make
 STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
+RETRY_FAILED = False
 
 # load the frontier URLs
 
@@ -71,6 +72,14 @@ del frontier
 if os.path.exists('../data/crawl_state.pkl'):
     with open('../data/crawl_state.pkl', 'rb') as f:
         current_crawl_state = pickle.load(f)
+
+if RETRY_FAILED:
+    print("Frontier size:", len(current_crawl_state['frontier']))
+    current_crawl_state['frontier'].extend([(x, 7, urllib.parse.urlparse(x).netloc) for x in current_crawl_state['failed']]) 
+    print("Frontier size:", len(current_crawl_state['frontier']))
+    current_crawl_state['failed'] = set()
+    print("Failed size:", len(current_crawl_state['failed']))
+
 
 # #### Storing the crawl results
 # 
@@ -202,6 +211,21 @@ async def get_url_content(url):
     str
         the content of the URL
     """
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.2420.81",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OPR/109.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.4; rv:124.0) Gecko/20100101 Firefox/124.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 OPR/109.0.0.0",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux i686; rv:124.0) Gecko/20100101 Firefox/124.0",
+    ]
+
+    headers = {"User-Agent": random.choice(user_agents)}
+   
 
     if any(url.endswith(x) for x in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm']):
         return None
@@ -209,7 +233,7 @@ async def get_url_content(url):
     connector = aiohttp.TCPConnector(limit=None)
     async with aiohttp.ClientSession(connector=connector) as session:
         try:
-            async with session.get(url, timeout=30) as response:
+            async with session.get(url, timeout=30, headers=headers) as response:
                 if url.endswith('.pdf'):
                     return await response.read()
                 return await response.text()
@@ -218,7 +242,7 @@ async def get_url_content(url):
             return None
         except asyncio.TimeoutError:
             print(f"Failed to fetch {url}: Timeout")
-            return None
+            return 'timeouterror'
 
 def sample_frontier():
     """sample the frontier to get a random sample of URLs to crawl.
@@ -271,6 +295,9 @@ def get_url_text_and_links(args):
 
     if url_content is None:
         return None, None
+    
+    if url_content == 'timeouterror':
+        return 'timeouterror', None
     
     try:
 
@@ -327,6 +354,10 @@ async def crawl_webpages():
                 # failed to fetch the URL content
                 current_crawl_state["failed"].add(url)
                 continue
+
+            if url_text == 'timeouterror':
+                print(f"URL {url} timed out. Adding it to frontier to try again later.")
+                current_crawl_state["frontier"].append(url)
 
             # check if the URL is relevant
             if not check_url_relevance(url_text):

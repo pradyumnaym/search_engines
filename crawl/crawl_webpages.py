@@ -1,27 +1,21 @@
 
 import os
-import gc
-import json
 import time
 import urllib
-import requests
 import random
 import validators
-import threading
 import pickle
-import signal
-import fitz
 import asyncio
 import aiohttp
-from ftlangdetect import detect
+import signal
 
-from requests_ip_rotator import EXTRA_REGIONS, ApiGateway
 from multiprocessing import Pool, cpu_count
 from dotenv import load_dotenv
-from tqdm import tqdm
-from bs4 import BeautifulSoup
+from rocksdict import Rdict
+from pebble import ProcessPool
+from concurrent.futures import TimeoutError
 
-from rocksdict import Rdict, Options
+from crawl_parse_utils import TimeoutException, check_url_relevance, get_url_text_and_links 
 
 load_dotenv()
 # #### Crawler design
@@ -106,6 +100,7 @@ def save_state():
     with open('../data/crawl_state.pkl', 'wb') as f:
         pickle.dump(current_crawl_state, f)
 
+
 # #### Crawling
 # 
 # We use a multi-threaded crawler for the reasons discussed above. Most of the operations we use below are thread-safe except for the following: 
@@ -121,81 +116,6 @@ def save_state():
 # 4. Extract contents and links from the URL.
 # 5. Append the links to the frontier, and save the contents of the URL.
 
-
-def check_url_relevance(url_content):
-    """check if the URL is relevant to the topic of the crawl
-    we can use a simple heuristic to check if the URL contains the keyword
-    or we can use a more sophisticated method to check the content of the page
-    to see if it is relevant
-    
-    Arguments
-    ---------
-    url_content : str
-        the URL to check
-
-    Returns
-    -------
-    bool
-        True if the URL is relevant, False otherwise
-
-    """
-
-    key_words = ["tübingen", "tuebingen", "boris palmer", "72070", "72072", "72074", "72076", "tubingen", "eberhard karl"]
-
-    for keyword in key_words:
-        if keyword in url_content.lower():
-            return True
-
-    return False
-
-def extract_links(current_url, url_content, max_links=100):
-    """extract the links from the HTML content of the URL.
-    We can use BeautifulSoup to extract the links from the HTML content
-    We need to take care of relative URLs and convert them to absolute URLs
-    
-    Arguments
-    ---------
-    current_url : str
-        the URL of the page from which the content was extracted
-    url_content : str
-        the HTML content of the URL
-
-    Returns
-    -------
-    list
-        list of URLs extracted from the content
-
-    """
-    soup = BeautifulSoup(url_content, 'html.parser')
-    links = []
-    
-    for a_tag in soup.find_all('a', href=True):
-        href = a_tag['href']
-        absolute_url = urllib.parse.urljoin(current_url, href)
-        links.append(absolute_url)
-
-    if len(links) > max_links:
-        links = random.sample(links, max_links)
-    
-    return links
-
-def extract_text(url_content):
-    """extract the text content from the HTML content of the URL.
-    We can use BeautifulSoup to extract the text from the HTML content
-    
-    Arguments
-    ---------
-    url_content : str
-        the HTML content of the URL
-
-    Returns
-    -------
-    str
-        the text extracted from the content
-
-    """
-    soup = BeautifulSoup(url_content, 'html.parser')
-    return soup.get_text(separator=' ', strip=True)
 
 async def get_url_content(url):
     """fetch the content of the URL using aiohttp.
@@ -244,6 +164,7 @@ async def get_url_content(url):
             print(f"Failed to fetch {url}: Timeout")
             return 'timeouterror'
 
+
 def sample_frontier():
     """sample the frontier to get a random sample of URLs to crawl.
     We sample the frontier to get a random sample of URLs to crawl.
@@ -273,55 +194,6 @@ def sample_frontier():
 
     return urls, depths
 
-def get_url_text_and_links(args):
-    """get the text content and links from the URL.
-    We extract the text content and links from the URL.
-
-    Arguments
-    ---------
-    args : tuple
-        tuple containing the URL and the content of the URL
-
-    Returns
-    -------
-    str
-        the text extracted from the content
-    list
-        list of URLs extracted from the content
-
-    """
-
-    url, url_content = args
-
-    if url_content is None:
-        return None, None
-    
-    if url_content == 'timeouterror':
-        return 'timeouterror', None
-    
-    try:
-
-        if isinstance(url_content, bytes):
-            pdf_document = fitz.open(stream=url_content, filetype="pdf")
-            text = ""
-            for page_num in range(len(pdf_document)):
-                page = pdf_document[page_num]
-                text += page.get_text()
-
-            pdf_document.close()
-            links = []
-        
-        else:
-            text, links = extract_text(url_content), extract_links(url, url_content)
-
-        if detect(text.replace('\n', ' '), low_memory=False)['lang'] != 'en':
-            return None, []
-        
-        return text, links
-            
-    except Exception as e:
-        print(f"Failed to extract text and links from URL: {e}")
-        return None, None
 
 async def crawl_webpages():
     """crawl the webpages in the frontier.
@@ -333,10 +205,27 @@ async def crawl_webpages():
         
         urls, depths = sample_frontier()
         tasks = [get_url_content(url) for url in urls]
-        url_contents = await asyncio.gather(*tasks)
+        url_content_raw = await asyncio.gather(*tasks)
 
-        with Pool(cpu_count()) as p:
-            url_contents = p.map(get_url_text_and_links, zip(urls, url_contents))
+        url_contents = []
+
+        with ProcessPool() as pool:
+            future = pool.map(get_url_text_and_links, zip(urls, url_content_raw), timeout=10)
+
+            iterator = future.result()
+
+            while True:
+                try:
+                    result = next(iterator)
+                    url_contents.append(result)
+                except StopIteration:
+                    break
+                except TimeoutError as error:
+                    print("function took longer than %d seconds" % error.args[1])
+                    url_contents.append((None, None))
+
+        # with Pool(cpu_count()) as p:
+        #     url_contents = p.map(get_url_text_and_links, zip(urls, url_contents))
 
         all_new_links = set()
 

@@ -224,8 +224,7 @@ async def crawl_webpages():
                     print("function took longer than %d seconds" % error.args[1])
                     url_contents.append((None, None))
 
-        # with Pool(cpu_count()) as p:
-        #     url_contents = p.map(get_url_text_and_links, zip(urls, url_contents))
+        assert len(url_contents) == len(urls)
 
         all_new_links = set()
 
@@ -246,7 +245,7 @@ async def crawl_webpages():
 
             if url_text == 'timeouterror':
                 print(f"URL {url} timed out. Adding it to frontier to try again later.")
-                current_crawl_state["frontier"].append(url)
+                current_crawl_state["frontier"].append((url, depth, urllib.parse.urlparse(url).netloc))
 
             # check if the URL is relevant
             if not check_url_relevance(url_text):
@@ -268,7 +267,6 @@ async def crawl_webpages():
         for link in all_new_links:
             # check if it is a valid URL, and not an image or a video
             if validators.url(link) and not any(url.endswith(x) for x in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm']):
-                current_crawl_state["frontier"].append((link, MAX_DEPTH, urllib.parse.urlparse(link).netloc))
                 # add the link to the frontier with a probability to avoid the frontier becoming too large
                 if random.random() < EXPAND_FRONTIER:
                     current_crawl_state["frontier"].append((link, depth-1, urllib.parse.urlparse(link).netloc))

@@ -18,6 +18,8 @@ We start gathering information about places in Tübingen using OpenStreetMaps. W
 
 3. `crawl_webpages.(py | ipynb)`: We start with the frontier URLs, and crawl all relevant webpages. Initially, we determin relevance by simply looking for keywords such as 'Tübingen'. Once we have enough data, we can train a classifier to determine relevance. `crawl_webpages.py` has a thread-based implementation that gets bottlenecked due to the synchronous requests.get() call. We then implement `crawl_webpages.py` with async requests and multiprocessing.
 
-4. `filter_english_data.ipynb`: A helper notebook to remove all German documents, and to edit the crawl state to only keep English documents.
+4. `crawl_parse_utils.py`: Some helper functions to parse URL contents.
 
-5. `keep_crawling.sh`: A bash script that restarts the crawler if it exits due to some unforeseen error.
+5. `filter_english_data.ipynb`: A helper notebook to remove all German documents, and to edit the crawl state to only keep English documents.
+
+6. `keep_crawling.sh`: A bash script that restarts the crawler if it exits due to some unforeseen error.

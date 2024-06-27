@@ -32,7 +32,7 @@ load_dotenv()
 MAX_DEPTH = 7                     # Maximum depth to crawl.
 TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
 EXPAND_FRONTIER = 0.5             # Probability of expanding the frontier
-PARALLEL_REQUESTS = 3072          # Number of parallel requests to make
+PARALLEL_REQUESTS = 5124          # Number of parallel requests to make
 STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
 RETRY_FAILED = False
 
@@ -153,7 +153,7 @@ async def get_url_content(url):
     connector = aiohttp.TCPConnector(limit=None)
     async with aiohttp.ClientSession(connector=connector) as session:
         try:
-            async with session.get(url, timeout=30, headers=headers) as response:
+            async with session.get(url, timeout=27, headers=headers) as response:
                 if url.endswith('.pdf'):
                     return await response.read()
                 return await response.text()
@@ -167,7 +167,6 @@ async def get_url_content(url):
 
 def sample_frontier():
     """sample the frontier to get a random sample of URLs to crawl.
-    We sample the frontier to get a random sample of URLs to crawl.
 
     Returns
     -------
@@ -221,7 +220,7 @@ async def crawl_webpages():
                 except StopIteration:
                     break
                 except TimeoutError as error:
-                    print("function took longer than %d seconds" % error.args[1])
+                    print("function took longer than %d seconds")
                     url_contents.append((None, None))
 
         assert len(url_contents) == len(urls)

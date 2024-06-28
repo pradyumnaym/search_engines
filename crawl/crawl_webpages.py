@@ -32,7 +32,7 @@ load_dotenv()
 MAX_DEPTH = 7                     # Maximum depth to crawl.
 TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
 EXPAND_FRONTIER = 0.5             # Probability of expanding the frontier
-PARALLEL_REQUESTS = 4096          # Number of parallel requests to make
+PARALLEL_REQUESTS = 5124          # Number of parallel requests to make
 STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
 RETRY_FAILED = False
 
@@ -69,7 +69,7 @@ if os.path.exists('../data/crawl_state.pkl'):
 
 if RETRY_FAILED:
     print("Frontier size:", len(current_crawl_state['frontier']))
-    current_crawl_state['frontier'].extend([(x, 7, urllib.parse.urlparse(x).netloc) for x in current_crawl_state['failed']]) 
+    current_crawl_state['frontier'].extend([(x, 7, urllib.parse.urlparse(x).netloc) for x in current_crawl_state['failed'] if not any(x.endswith(y) for y in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm'])]) 
     print("Frontier size:", len(current_crawl_state['frontier']))
     current_crawl_state['failed'] = set()
     print("Failed size:", len(current_crawl_state['failed']))
@@ -153,7 +153,7 @@ async def get_url_content(url):
     connector = aiohttp.TCPConnector(limit=None)
     async with aiohttp.ClientSession(connector=connector) as session:
         try:
-            async with session.get(url, timeout=23, headers=headers) as response:
+            async with session.get(url, timeout=30, headers=headers) as response:
                 if url.endswith('.pdf'):
                     return await response.read()
                 return await response.text()

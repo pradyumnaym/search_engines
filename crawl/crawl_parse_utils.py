@@ -139,7 +139,7 @@ def get_url_text_and_links(args):
                 with open('../data/slow_urls.txt', 'a') as f:
                     f.write(url + '\n')
 
-        if detect(text.replace('\n', ' '), low_memory=False)['lang'] != 'en':
+        if detect(text.replace('\n', ' '), low_memory=True)['lang'] != 'en':
             return None, []
         
         return text, links

@@ -9,7 +9,7 @@ import asyncio
 import aiohttp
 import signal
 
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, Process
 from dotenv import load_dotenv
 from rocksdict import Rdict
 from pebble import ProcessPool
@@ -32,7 +32,7 @@ load_dotenv()
 MAX_DEPTH = 7                     # Maximum depth to crawl.
 TIME_BETWEEN_REQUESTS = 1.0       # Number of seconds to wait between requests to the same domain
 EXPAND_FRONTIER = 0.5             # Probability of expanding the frontier
-PARALLEL_REQUESTS = 5124          # Number of parallel requests to make
+PARALLEL_REQUESTS = 4096          # Number of parallel requests to make
 STOP_EVENT = asyncio.Event()      # Flag to stop the crawl
 RETRY_FAILED = False
 
@@ -82,10 +82,21 @@ if RETRY_FAILED:
 # open the dictionary file
 db = Rdict('../data/crawl_data')
 
+
+# Save the crawl_state file in a subprocess - saves time.
+p = None
+
+def write_pickle_file(obj, path):
+    print("Saving pickle using subprocess!")
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f)
+    print("Completed saving the state!")
+
 def save_state():
     """
     Save the current crawl state to disk as a pickle file.
     """
+    global p
     current_crawl_state["last_saved"] = time.time()
 
     print("--------------------------------------------------")
@@ -97,9 +108,12 @@ def save_state():
     print("--------------------------------------------------")
 
     db.flush()
-    with open('../data/crawl_state.pkl', 'wb') as f:
-        pickle.dump(current_crawl_state, f)
 
+    if p is None or not p.is_alive():
+        # Run this only if the previous subprocess has finished writing to disk.
+        p = Process(target=write_pickle_file, args=(current_crawl_state, '../data/crawl_state.pkl'))
+        p.daemon = False
+        p.start()
 
 # #### Crawling
 # 

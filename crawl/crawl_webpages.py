@@ -164,20 +164,23 @@ async def get_url_content(url):
     if any(url.endswith(x) for x in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm']):
         return None
 
+    return_value = None
+
     connector = aiohttp.TCPConnector(limit=None)
     async with aiohttp.ClientSession(connector=connector) as session:
         try:
             async with session.get(url, timeout=30, headers=headers) as response:
                 if url.endswith('.pdf'):
-                    return await response.read()
-                return await response.text()
+                    return_value = await response.read()
+                return_value = await response.text()
         except (aiohttp.ClientError, UnicodeDecodeError, ValueError, LookupError) as e:
             print(f"Failed to fetch {url}: {e}")
-            return None
         except asyncio.TimeoutError:
             print(f"Failed to fetch {url}: Timeout")
-            return 'timeouterror'
+            return_value =  'timeouterror'
+
     await connector.close()
+    return return_value
 
 def sample_frontier():
     """sample the frontier to get a random sample of URLs to crawl.

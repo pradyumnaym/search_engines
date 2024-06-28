@@ -172,7 +172,8 @@ async def get_url_content(url):
             async with session.get(url, timeout=30, headers=headers) as response:
                 if url.endswith('.pdf'):
                     return_value = await response.read()
-                return_value = await response.text()
+                else:
+                    return_value = await response.text()
         except (aiohttp.ClientError, UnicodeDecodeError, ValueError, LookupError) as e:
             print(f"Failed to fetch {url}: {e}")
         except asyncio.TimeoutError:

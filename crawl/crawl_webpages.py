@@ -232,29 +232,27 @@ async def crawl_webpages():
             current_crawl_state['all_discovered_urls'].add(url)
 
             if url_text is None:
-                
-                #language does not match.
                 if url_links is not None:
-                    db[url] = url_text
+                    #language does not match.
                     current_crawl_state['rejected'].add(url)
-
-                # failed to fetch the URL content
-                current_crawl_state["failed"].add(url)
+                else:
+                    # failed to fetch the URL content
+                    current_crawl_state["failed"].add(url)
                 continue
 
             if url_text == 'timeouterror':
                 print(f"URL {url} timed out. Adding it to frontier to try again later.")
                 current_crawl_state["frontier"].append((url, depth, urllib.parse.urlparse(url).netloc))
+                continue
+
+            # save the text content to the dictionary
+            db[url] = url_text
 
             # check if the URL is relevant
             if not check_url_relevance(url_text):
                 current_crawl_state["rejected"].add(url)
-                db[url] = url_text
                 continue
             
-            # save the text content to the dictionary
-            db[url] = url_text
-
             current_crawl_state["visited"].add(url)
 
             if depth > 0:

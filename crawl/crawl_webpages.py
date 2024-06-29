@@ -131,7 +131,7 @@ def save_state():
 # 5. Append the links to the frontier, and save the contents of the URL.
 
 
-async def get_url_content(url):
+async def get_url_content(url, session):
     """fetch the content of the URL using aiohttp.
     We use aiohttp to fetch the content of the URL asynchronously
 
@@ -166,21 +166,18 @@ async def get_url_content(url):
 
     return_value = None
 
-    connector = aiohttp.TCPConnector(limit=None)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        try:
-            async with session.get(url, timeout=30, headers=headers) as response:
-                if url.endswith('.pdf'):
-                    return_value = await response.read()
-                else:
-                    return_value = await response.text()
-        except (aiohttp.ClientError, UnicodeDecodeError, ValueError, LookupError) as e:
-            print(f"Failed to fetch {url}: {e}")
-        except asyncio.TimeoutError:
-            print(f"Failed to fetch {url}: Timeout")
-            return_value =  'timeouterror'
+    try:
+        async with session.get(url, timeout=30, headers=headers) as response:
+            if url.endswith('.pdf'):
+                return_value = await response.read()
+            else:
+                return_value = await response.text()
+    except (aiohttp.ClientError, UnicodeDecodeError, ValueError, LookupError) as e:
+        print(f"Failed to fetch {url}: {e}")
+    except asyncio.TimeoutError:
+        print(f"Failed to fetch {url}: Timeout")
+        return_value =  'timeouterror'
 
-    await connector.close()
     return return_value
 
 def sample_frontier():
@@ -198,7 +195,15 @@ def sample_frontier():
     urls = []
     depths = []
     domains_frequency = {}
-    for url, depth, domain in random.sample(current_crawl_state['frontier'], PARALLEL_REQUESTS * 10):
+    
+    sample_indices = list(random.sample(list(range(len(current_crawl_state['frontier']))), PARALLEL_REQUESTS * 10))
+    sample_indices.sort(key = lambda x: current_crawl_state['frontier'][x][1], reverse = True)
+
+    # sample 10x the samples, sort the samples by the depth value - need to prioritise the root nodes.
+    for idx in sample_indices:
+        url, depth, domain = current_crawl_state['frontier'][idx]
+        if url in current_crawl_state['all_discovered_urls']:
+            continue
         if domain not in domains_frequency:
             domains_frequency[domain] = 0
         if domains_frequency[domain] < 3:
@@ -221,8 +226,13 @@ async def crawl_webpages():
     while len(current_crawl_state["frontier"]) > 0:
         
         urls, depths = sample_frontier()
-        tasks = [get_url_content(url) for url in urls]
-        url_content_raw = await asyncio.gather(*tasks)
+
+        connector = aiohttp.TCPConnector(limit=None)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            tasks = [get_url_content(url, session) for url in urls]
+            url_content_raw = await asyncio.gather(*tasks)
+
+        await connector.close()
 
         url_contents = []
 
@@ -244,6 +254,7 @@ async def crawl_webpages():
         assert len(url_contents) == len(urls)
 
         all_new_links = set()
+        url_depth_map = {}
 
         for url, (url_text, url_links), depth in zip(urls, url_contents, depths):
 
@@ -275,6 +286,8 @@ async def crawl_webpages():
 
             if depth > 0:
                 all_new_links.update(url_links)
+                for l in url_links:
+                  url_depth_map[l] = depth - 1
 
         # now process all the new links - add them to the frontier or to_visit, after checking if they are already discovered
         all_new_links = all_new_links - current_crawl_state['all_discovered_urls']
@@ -284,9 +297,9 @@ async def crawl_webpages():
             if validators.url(link) and not any(url.endswith(x) for x in ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.avi', '.webm']):
                 # add the link to the frontier with a probability to avoid the frontier becoming too large
                 if random.random() < EXPAND_FRONTIER:
-                    current_crawl_state["frontier"].append((link, depth-1, urllib.parse.urlparse(link).netloc))
+                    current_crawl_state["frontier"].append((link, url_depth_map[link], urllib.parse.urlparse(link).netloc))
                 else:
-                    current_crawl_state["to_visit"].add((link, depth-1, urllib.parse.urlparse(link).netloc))
+                    current_crawl_state["to_visit"].add((link, url_depth_map[link], urllib.parse.urlparse(link).netloc))
           
         save_state()
         if STOP_EVENT.is_set():

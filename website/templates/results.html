@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="results-container">
+    <form method="post" action="{{ url_for('search') }}" class="search-form">
+        <input type="text" name="query" placeholder="Search..." class="search-input" value="{{ query }}">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+    <div class="results-list">
+        {% for result in results %}
+            <div class="result-item">
+                <a href="#" class="result-title">{{ result['title'] }}</a>
+                <p class="result-url">{{ result['url'] }}</p>
+                <p class="result-snippet">{{ result['snippet'] }}</p>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="{{ url_for('results', query=query, page=page-1) }}" class="pagination-link">&laquo; Previous</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+                <span class="pagination-link current">{{ p }}</span>
+            {% else %}
+                <a href="{{ url_for('results', query=query, page=p) }}" class="pagination-link">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+            <a href="{{ url_for('results', query=query, page=page+1) }}" class="pagination-link">Next &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

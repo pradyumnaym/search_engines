@@ -3,3 +3,6 @@ data/places_*.json
 data/crawl_data
 crawl/.DS_Store
 .DS_Store
+
+__pycache__/
+*/__pycache__

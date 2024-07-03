@@ -15,7 +15,7 @@ from rocksdict import Rdict
 from pebble import ProcessPool
 from concurrent.futures import TimeoutError
 
-from crawl_parse_utils import TimeoutException, check_url_relevance, get_url_text_and_links 
+from utils.crawl_parse_utils import check_url_relevance, get_url_text_and_links 
 
 load_dotenv()
 # #### Crawler design

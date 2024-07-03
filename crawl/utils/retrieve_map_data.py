@@ -38,7 +38,7 @@ requests_headers = {
 response_json = requests.post(url, json = request_params, headers=requests_headers).json()
 
 # Does not work unfortunately :(. Only 20 results per query allowed! Use open data instead. 
-with open('../data/places.json', 'w') as fp:
+with open('../../data/places.json', 'w') as fp:
     json.dump(response_json, fp, indent=4)
 
 print("Obtained the response!")

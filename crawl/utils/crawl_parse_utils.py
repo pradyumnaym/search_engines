@@ -93,7 +93,6 @@ def extract_text(url_content):
     return soup.get_text(separator=' ', strip=True), soup.title.text
 
 
-
 def get_url_text_and_links(args):
     """get the text content and links from the URL.
     We extract the text content and links from the URL.

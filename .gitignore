@@ -7,3 +7,4 @@ data/titles
 data/crawl_state.pkl
 crawl/lid.176.bin
 *.pyc
+unavailable_urls.pkl

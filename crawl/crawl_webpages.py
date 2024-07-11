@@ -15,7 +15,7 @@ from rocksdict import Rdict
 from pebble import ProcessPool
 from concurrent.futures import TimeoutError
 
-from crawl_parse_utils import TimeoutException, check_url_relevance, get_url_text_and_links 
+from utils.crawl_parse_utils import check_url_relevance, get_url_text_and_links 
 
 load_dotenv()
 # #### Crawler design
@@ -81,7 +81,7 @@ if RETRY_FAILED:
 
 # open the dictionary file
 db = Rdict('../data/crawl_data')
-
+db_titles = Rdict('../data/titles')
 
 # Save the crawl_state file in a subprocess - saves time.
 p = None
@@ -249,16 +249,19 @@ async def crawl_webpages():
                     break
                 except TimeoutError as error:
                     print("function took longer than %d seconds")
-                    url_contents.append((None, None))
+                    url_contents.append((None, None, None))
 
         assert len(url_contents) == len(urls)
 
         all_new_links = set()
         url_depth_map = {}
 
-        for url, (url_text, url_links), depth in zip(urls, url_contents, depths):
+        for url, (url_text, url_links, url_title), depth in zip(urls, url_contents, depths):
 
             current_crawl_state['all_discovered_urls'].add(url)
+
+            if url_title is not None:
+                db_titles[url] = url_title
 
             if url_text is None:
                 if url_links is not None:

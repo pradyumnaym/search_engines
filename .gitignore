@@ -3,6 +3,11 @@ data/places_*.json
 data/crawl_data
 crawl/.DS_Store
 .DS_Store
+data/titles
+data/crawl_state.pkl
+crawl/lid.176.bin
+*.pyc
+unavailable_urls.pkl
 
 __pycache__/
 */__pycache__

@@ -86,8 +86,11 @@ def extract_text(url_content):
 
     """
     soup = BeautifulSoup(url_content, 'html.parser')
-    return soup.get_text(separator=' ', strip=True)
 
+    if soup.title is None:
+        return soup.get_text(separator=' ', strip=True), None
+
+    return soup.get_text(separator=' ', strip=True), soup.title.text
 
 
 def get_url_text_and_links(args):
@@ -111,10 +114,10 @@ def get_url_text_and_links(args):
     url, url_content = args
 
     if url_content is None:
-        return None, None
+        return None, None, None
     
     if url_content == 'timeouterror':
-        return 'timeouterror', None
+        return 'timeouterror', None, None
     
     try:
 
@@ -127,23 +130,16 @@ def get_url_text_and_links(args):
 
             pdf_document.close()
             links = []
+            title = None
         
         else:
-            start_time = time.time()
-            text, links = extract_text(url_content), extract_links(url, url_content)
+            (text, title), links = extract_text(url_content), extract_links(url, url_content)
             
-            if time.time() - start_time > 10:
-                print(f"URL {url} took {time.time() - start_time} seconds to process")
-
-                # append the url to a file to check later
-                with open('../data/slow_urls.txt', 'a') as f:
-                    f.write(url + '\n')
-
         if detect(text.replace('\n', ' '), low_memory=True)['lang'] != 'en':
-            return None, []
+            return None, [], None
         
-        return text, links
+        return text, links, title
             
     except Exception as e:
         print(f"Failed to extract text and links from URL: {e}")
-        return None, None
+        return None, None, None

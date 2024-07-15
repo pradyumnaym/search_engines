@@ -1,5 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+KEEP_MODEL_IN_GPU = False
+
 def generate_related_queries_prompt(query):
     """
     Create a prompt that can be used to generated related queries. 
@@ -24,6 +26,11 @@ Please give me the top 5 related queries related to this query. Please print the
 Please keep the related searches diverse, without redundancies, and do not include any thing else (not even numbering).
 The related queries are:"""
 
+if KEEP_MODEL_IN_GPU:
+    model = AutoModelForCausalLM.from_pretrained(
+        "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True
+    )
+
 
 def get_related_searches(query_list):
     """
@@ -39,9 +46,10 @@ def get_related_searches(query_list):
     """
     prompts = list(map(generate_related_queries_prompt, query_list))
 
-    model = AutoModelForCausalLM.from_pretrained(
-        "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True
-    )
+    if not KEEP_MODEL_IN_GPU:
+        model = AutoModelForCausalLM.from_pretrained(
+            "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True
+        )
 
     tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3", padding_side="left")
     tokenizer.pad_token = tokenizer.eos_token  # Most LLMs don't have a pad token by default
@@ -49,12 +57,12 @@ def get_related_searches(query_list):
     model_inputs = tokenizer(
         prompts, return_tensors="pt", padding=True
     ).to("cuda")
-
-    del model
-
     generated_ids = model.generate(max_new_tokens = 50, **model_inputs)
-    outputs = tokenizer.batch_decode(generated_ids[:, model_inputs.input_ids.shape[1]:], skip_special_tokens=True)
 
+    if not KEEP_MODEL_IN_GPU:
+        del model
+
+    outputs = tokenizer.batch_decode(generated_ids[:, model_inputs.input_ids.shape[1]:], skip_special_tokens=True)
     outputs = [
         [query.strip() for query in output.split(";")]
         for output in outputs

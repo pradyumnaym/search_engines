@@ -87,7 +87,7 @@ def get_url_text_and_links(args):
     try:
 
         if url.endswith('.pdf'):
-            title = None
+            title, text, links  = "PDF File", None, None
         else:
             (text, title), links = extract_text(url_content), None
         

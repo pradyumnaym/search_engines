@@ -38,10 +38,11 @@ def get_relevant_sentences(text, keywords):
         return max(sentence.similarity(keyword) for keyword in keywords)
 
     sentences = list(doc.sents)
-    sentences.sort(key=lambda sent: sentence_similarity(sent, keyword_tokens), reverse=True)
+    sentences = [ (sent, sentence_similarity(sent, keyword_tokens)) for sent in sentences ]
+    sentences.sort(key=lambda x: x[1], reverse=True)
 
     # filter out low similarity sentences
-    sentences = [sent for sent in sentences if sentence_similarity(sent, keyword_tokens) > 0.6]
+    sentences = [sent[0] for sent in sentences if sent[1] > 0.6]
     sentences = [str(sent) for sent in sentences]
     
     return sentences[:5]

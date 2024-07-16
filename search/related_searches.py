@@ -69,7 +69,7 @@ def get_related_searches(query_list):
     ]
 
     return outputs
-        
+
 if __name__ == '__main__':
 
     ####### Related searches LLM call

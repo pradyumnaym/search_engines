@@ -1,4 +1,5 @@
 import spacy
+from multiprocessing import Pool
 
 try:
     nlp = spacy.load('en_core_web_lg')
@@ -47,6 +48,13 @@ def get_relevant_sentences(text, keywords):
     
     return sentences[:5]
 
+def keywords_wrapper(keywords):
+    return lambda text: get_relevant_sentences(text, keywords)
+
+def get_relevant_sentences_parallel(texts, keywords):
+    with Pool() as pool:
+        return pool.map(keywords_wrapper(keywords), texts)
+    
 if __name__ == "__main__":
     import random, pickle
 

@@ -3,7 +3,6 @@ from rocksdict import Rdict
 from query_postprocessing.related_searches import get_related_searches
 from query_postprocessing.summarise_text import get_relevant_sentences
 from datetime import datetime
-
 db = Rdict("../data/crawl_data")
 
 

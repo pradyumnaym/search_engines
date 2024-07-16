@@ -49,9 +49,32 @@ def get_relevant_sentences(text, keywords):
     return sentences[:5]
 
 def keywords_wrapper(keywords):
+    """
+    Wrapper function to pass keywords to get_relevant_sentences in multiprocessing
+
+    Arguments
+    ---------
+    keywords: str, the keywords to extract from the text
+
+    Returns
+    -------
+    function, a function that takes a text and returns the top 5 most relevant sentences based on the keywords
+    """
     return lambda text: get_relevant_sentences(text, keywords)
 
 def get_relevant_sentences_parallel(texts, keywords):
+    """
+    Get the top 5 most relevant sentences from each text in parallel
+
+    Arguments
+    ---------
+    texts: list of str, the texts to summarize
+    keywords: str, the keywords to extract from the text
+
+    Returns
+    -------
+    list of list of str, the top 5 most relevant sentences from each text
+    """
     with Pool() as pool:
         return pool.map(keywords_wrapper(keywords), texts)
     

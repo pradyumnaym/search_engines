@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
-# import interface to use search engine backend
+# import interface to use query_postprocessing engine backend
 from .. import interface
 
 # Run with flask --app website_main run  (--debug)

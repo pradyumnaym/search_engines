@@ -1,5 +1,7 @@
+from engine_kernel.combined_results import n_search_results
+
 '''
-Iterface between website and search-engine logic.
+Iterface between website and query_postprocessing-engine logic.
 
 Implement a function to get a website-representation for a given query
 The representation should conain useful information to display
@@ -15,7 +17,7 @@ example_website = {
 # Returns the best matching {n} websites for query q
 def get_websites(query: str, count=100):
     # Example websites for testing
-    return get_examples(query, 100)
+    return n_search_results(query, 100)
 
 
 # Returns examples to debug website

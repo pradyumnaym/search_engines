@@ -7,6 +7,35 @@ Implement a function to get a website-representation for a given query
 The representation should conain useful information to display
 '''
 
+
+class SingleResult:
+    def __init__(self, url: str, important_sentences: list[str]):
+        self.url = url
+        self.important_sentences = important_sentences
+
+
+class CompleteResult:
+    def __init__(self, related_queries: list[list[list[str]]], results: list[SingleResult]):
+        self.related_queries = related_queries
+        self.results = results
+
+
+class DocInfo:
+    def __init__(self, doc_index: int, word_list: list[str]):
+        self.doc_index = doc_index
+        self.word_list = word_list
+
+    def return_doc_as_text(self) -> str:
+        doc_string = ""
+        for word in self.word_list:
+            doc_string += word + " "
+
+        doc_string = doc_string[:-1]  # removing the last space
+        return doc_string
+
+
+
+
 #  example representation
 example_website = {
     'title': "Some title",

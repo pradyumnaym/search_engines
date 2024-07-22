@@ -6,15 +6,25 @@
         <input type="text" name="query" placeholder="Search..." class="search-input" value="{{ query }}">
         <button type="submit" class="search-button">Search</button>
     </form>
+
+    <div class="suggested-queries">
+        <p>Suggested queries:</p>
+        <ul>
+            {% for suggestion in suggested_queries %}
+                <li><a href="{{ url_for('results', query=suggestion, page=1) }}" class="suggestion-bubble">{{ suggestion }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
     <div class="results-list">
         {% for result in results %}
             <div class="result-item">
-                <a href="#" class="result-title">{{ result['title'] }}</a>
-                <p class="result-url">{{ result['url'] }}</p>
-                <p class="result-snippet">{{ result['snippet'] }}</p>
+                <a href="{{  result.url  }}" class="result-title">{{ result.title }}</a>
+                <p class="result-url">{{ result.url[:70] }}{% if result.url|length > 70  %}...{% endif %}</p>
+                <p class="result-snippet">{{ result.important_sentences }}</p>
             </div>
         {% endfor %}
     </div>
+    <div class="spacer"></div>
     <div class="pagination">
         {% if page > 1 %}
             <a href="{{ url_for('results', query=query, page=page-1) }}" class="pagination-link">&laquo; Previous</a>

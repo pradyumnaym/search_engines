@@ -1,6 +1,6 @@
 from rocksdict import Rdict
 import time
-from ftlangdetect import detect
+# from ftlangdetect import detect
 from interface import DocInfo
 
 # punctuation that should be removed
@@ -56,10 +56,8 @@ def preprocess(text):
 
 
 def init_forward_database(doc_db_path: str, forward_db_path: str, batch_size=5000):
-    #  with Rdict(doc_db_path) as doc_db, Rdict(forward_db_path) as forward_db, Rdict(backward_db_path) as backward_db:
     with Rdict(doc_db_path) as doc_db, Rdict(forward_db_path) as forward_db:
-        # db with url -> DocInfo[doc_index, doc]
-        # db with doc_index -> url
+        # forward_db with url -> DocInfo[doc_index, doc]
         print("all databases loaded")
 
         expected_length = 2800000
@@ -72,7 +70,7 @@ def init_forward_database(doc_db_path: str, forward_db_path: str, batch_size=500
                 # already added, this program was already started before
                 continue
 
-            if doc and (detect(doc.replace('\n', ' '), low_memory=True)['lang'] == 'en'):
+            if doc: # and doc != "" and (detect(doc.replace('\n', ' '), low_memory=True)['lang'] == 'en'):
                 forward_db[url] = DocInfo(doc_index, preprocess(doc))
                 # backward_db[doc_index] = url
                 doc_index += 1
@@ -83,13 +81,15 @@ def init_forward_database(doc_db_path: str, forward_db_path: str, batch_size=500
                 print("-----------")
                 print(f"Preprocessed {iterations} Websites, {doc_index} of them were non empty.")
                 print(f"average documents per minute: {current_speed:.2f}")
-                # print(f"with the expected length of {expected_length} this will take {(expected_length - iterations) / current_speed:.2f} minutes")
+                print(f"with the expected length of {expected_length} this will take {(expected_length - iterations) / current_speed:.2f} minutes")
                 forward_db.flush()
                 # backward_db.flush()
             iterations += 1
 
+
 def init_backward_database(forward_db_path: str, backward_db_path: str, batch_size=5000):
     with Rdict(forward_db_path) as forward_db, Rdict(backward_db_path) as backward_db:
+        # backward_db with doc_index -> url
         iterations = 1
         start_ts = time.time()
         for url, doc_info in forward_db.items():
@@ -104,8 +104,6 @@ def init_backward_database(forward_db_path: str, backward_db_path: str, batch_si
                 print("-----------")
                 print(f"Created back link for {iterations} Websites")
                 print(f"average documents per minute: {current_speed:.2f}")
-                # print(f"with the expected length of {expected_length} this will take {(expected_length - iterations) / current_speed:.2f} minutes")
-                # forward_db.flush()
                 backward_db.flush()
             iterations += 1
 

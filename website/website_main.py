@@ -15,8 +15,6 @@ TODO:
 
 # Run with flask --app website_main run  (--debug)
 app = Flask(__name__)
-#cors = CORS(app)
-#app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 @app.route("/")

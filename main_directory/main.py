@@ -27,7 +27,7 @@ def n_search_results(query: str, n: int, search_factor=5) -> CompleteResult:
         try:
             title = title_db[url]
         except KeyError:
-            title = "Not title found"
+            title = "No title found"
 
         important_sentences = get_relevant_sentences(doc_info.return_doc_as_text(), query)
         results.append(SingleResult(url, score, title, important_sentences))

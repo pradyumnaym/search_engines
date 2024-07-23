@@ -27,7 +27,7 @@ with open('../data/unavailable_urls.pkl', 'rb') as f:
     if isinstance(next(iter(frontier)), str):
         frontier = set([(url, 0, urllib.parse.urlparse(url).netloc) for url in frontier])
 
-db_titles = Rdict('../data/titles')
+db_titles = Rdict('../data/runtime_data/titles')
 
 # Save the crawl_state file in a subprocess - saves time.
 p = None

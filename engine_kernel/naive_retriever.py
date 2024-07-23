@@ -5,7 +5,7 @@ from rocksdict import Rdict, AccessType
 
 model = SentenceTransformer("all-mpnet-base-v2", device="cuda")
 
-loaded_embeddings = np.load("../data/embeddings/combined_embedding_2.npy").astype(np.float16)
+loaded_embeddings = np.load("../data/runtime_data/embeddings/combined_embedding_2.npy").astype(np.float16)
 print("model and embeddings loaded")
 
 

@@ -11,7 +11,7 @@ def save_dataset_parts(batch_size: int):
 
     :param batch_size: The size of the dataset to slice.
     """
-    forward_db = Rdict("../data/forward_db", access_type=AccessType.read_only())
+    forward_db = Rdict("../data/runtime_data/forward_db", access_type=AccessType.read_only())
 
     docs = []
     doc_counter = 0

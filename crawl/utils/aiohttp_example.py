@@ -5,7 +5,7 @@ import pickle
 import time
 import validators
 
-with open('../../data/frontier_urls.pkl', 'rb') as f:
+with open('../../data/crawling_data/frontier_urls.pkl', 'rb') as f:
     frontier = pickle.load(f)
 
 urls = list(frontier)[:1000]

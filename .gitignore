@@ -1,10 +1,10 @@
 .venv/*
 data/places_*.json
-data/crawl_data
+data/crawling_data/crawl_data
 crawl/.DS_Store
 .DS_Store
-data/titles
-data/crawl_state.pkl
+data/runtime_data/titles
+data/crawling_data/crawl_state.pkl
 crawl/lid.176.bin
 *.pyc
 unavailable_urls.pkl

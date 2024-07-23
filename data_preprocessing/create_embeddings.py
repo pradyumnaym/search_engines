@@ -86,7 +86,7 @@ def generate_embeddings(source_db_path: str, embeddings_db_path: str, embeddings
     :param batch_size: number of documents that are processed in one batch and saved in one file
     :return: None
     """
-    model = SentenceTransformer("../data/trained_model/model_final", device="cuda")
+    model = SentenceTransformer("../data/runtime_data/trained_model/model_final", device="cuda")
     # loading the dictionary database
     source_db = Rdict(source_db_path, access_type=AccessType.read_only())
     embedding_db = Rdict(embeddings_db_path)
@@ -143,5 +143,6 @@ def combine_embeddings(embeddings_path: str, combined_embeddings_name: str, numb
 
 
 if __name__ == '__main__':
-    batch_number = generate_embeddings("../data/forward_db", "../data/embeddings_db", "../data/embeddings")
-    combine_embeddings("../data/embeddings", "combined_embedding_2", batch_number)
+    batch_number = generate_embeddings("../data/runtime_data/forward_db", "../data/runtime_data/embeddings_db",
+                                       "../data/runtime_data/embeddings")
+    combine_embeddings("../data/runtime_data/embeddings", "combined_embedding_2", batch_number)

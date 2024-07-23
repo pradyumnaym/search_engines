@@ -1,20 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="results-container">
-    <form method="post" action="{{ url_for('search') }}" class="search-form">
-        <input type="text" name="query" placeholder="Search..." class="search-input" value="{{ query }}">
-        <button type="submit" class="search-button">Search</button>
-    </form>
-    <div class="results-list">
-        {% for result in results %}
-            <div class="result-item">
-                <a href="#" class="result-title">{{ result['title'] }}</a>
-                <p class="result-url">{{ result['url'] }}</p>
-                <p class="result-snippet">{{ result['snippet'] }}</p>
-            </div>
-        {% endfor %}
+<script>
+
+var contents = {{ url_contents | tojson | safe }};
+
+function handleHover(event) {
+  if(!event) return
+  console.log("Here")
+  console.log(event)
+  console.log(document.getElementById( "iframe1" ))
+  document.getElementById( "iframe1" ).setAttribute("srcdoc", contents[parseInt(event.id)]);
+  document.getElementById( "iframe1" ).style.display = "block"   
+}
+
+function handleOff(event) {
+  console.log("out")
+  document.getElementById( "iframe1" ).style.display = "hidden"
+}
+</script>
+
+<div class="container">
+<div class="split-container">
+    
+    <div class="results-container left-half">
+        <form method="post" action="{{ url_for('search') }}" class="search-form">
+            <input type="text" name="query" placeholder="Search..." class="search-input" value="{{ query }}">
+            <button type="submit" class="search-button">Search</button>
+        </form>
+
+        <div class="suggested-queries">
+            <p>Suggested queries:</p>
+            <ul>
+                {% for suggestion in suggested_queries %}
+                    <li><a href="{{ url_for('results', query=suggestion, page=1) }}" class="suggestion-bubble">{{ suggestion }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="results-list">
+            {% for i in range(10) %}
+                <div class="result-item" id="{{ i }}" onmouseover = handleHover(this) onmouseoff = handleOff(this)>
+                    <a href="{{  results[i].url  }}" class="result-title">{{ results[i].title }}</a>
+                    <p class="result-url">{{ results[i].url[:70] }}{% if results[i].url|length > 70  %}...{% endif %}</p>
+                    <p class="result-snippet">{{ results[i].important_sentences }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="spacer"></div>
     </div>
+    <div class="right-half">
+        <iframe id="iframe1" width="100%" height="1000in">
+        </iframe>
+    </div>
+</div>
+
     <div class="pagination">
         {% if page > 1 %}
             <a href="{{ url_for('results', query=query, page=page-1) }}" class="pagination-link">&laquo; Previous</a>

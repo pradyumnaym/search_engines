@@ -1,5 +1,9 @@
+#from engine_kernel.combined_results import n_search_results
+import pickle
+
 '''
-Interface between website and query_postprocessing-engine logic.
+Iterface between website and query_postprocessing-engine logic.
+
 
 Implement a function to get a website-representation for a given query
 The representation should contain useful information to display
@@ -7,10 +11,11 @@ The representation should contain useful information to display
 
 
 class SingleResult:
-    def __init__(self, url: str, score, important_sentences: list[str]):
+    def __init__(self, url: str, score, title, important_sentences: list[str]):
         self.url = url
-        self.score = score
         self.important_sentences = important_sentences
+        self.score = score
+        self.title = title
 
 
 class CompleteResult:
@@ -31,6 +36,7 @@ class CompleteResult:
             result_rank += 1
 
 
+
 class DocInfo:
     def __init__(self, doc_index: int, word_list: list[str]):
         self.doc_index = doc_index
@@ -43,5 +49,4 @@ class DocInfo:
 
         doc_string = doc_string[:-1]  # removing the last space
         return doc_string
-
 

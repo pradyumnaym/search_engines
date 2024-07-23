@@ -12,8 +12,8 @@ The representation should contain useful information to display
 '''
 
 
-forward_db = Rdict("./data/forward_db")
-backward_db = Rdict("./data/backward_db")
+forward_db = Rdict("data/runtime_data/forward_db")
+backward_db = Rdict("data/runtime_data/backward_db")
 
 
 class SingleResult:
@@ -33,6 +33,13 @@ class CompleteResult:
             print(f"--- {result.url}, with score {result.score}")
             print(result.important_sentences)
             print("---------")
+
+    def output_str(self, output_file, query_num=0):
+        result_rank = 1
+        for result in self.results:
+            output_file.write(f"{query_num}\t{result_rank}\t{result.url}\t{result.score}\n")
+            result_rank += 1
+
 
 
 class DocInfo:
@@ -76,6 +83,17 @@ def n_search_results(query: str, n: int) -> CompleteResult:
     print("-------------")
 
     return answers
+
+
+def interactive_exam_file_creation():
+    with open("exam_output.txt", "w") as file:
+        query = input("Please enter a query: ")
+        query_num = 1
+        while query is not "q":
+            result = n_search_results(query, 100)
+            result.output_str(file, query_num=query_num)
+            query_num += 1
+            query = input("Please enter next query: ")
 
 
 if __name__ == '__main__':

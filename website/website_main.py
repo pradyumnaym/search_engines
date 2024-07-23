@@ -124,9 +124,6 @@ def results():
     print("Gathered all URL contents!")
     print(url_content_raw[0])
 
-    for i, x in enumerate(paginated_results):
-        x['url_content'] = url_content_raw[i]
-    
     total_pages = total_results // per_page
     
-    return render_template('results.html', query=query, results=paginated_results, page=page, total_pages=total_pages, suggested_queries=suggested_queries)
+    return render_template('results.html', query=query, results=paginated_results, page=page, total_pages=total_pages, suggested_queries=suggested_queries, url_contents=url_content_raw)

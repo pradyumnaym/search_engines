@@ -44,6 +44,40 @@ body {
   background-color: #357AE8;
 }
 
+.suggested-queries {
+  margin-top: 20px;
+}
+
+.suggested-queries p {
+  font-size: 14px;
+  color: #666;
+}
+
+.suggested-queries ul {
+  list-style: none;
+  padding: 0;
+}
+
+.suggested-queries li {
+  display: inline-block;
+  margin: 5px;
+}
+
+.suggestion-bubble {
+  display: inline-block;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: white;
+  background-color: #4285F4;
+  border-radius: 24px;
+  text-decoration: none;
+  transition: background-color 0.3s;
+}
+
+.suggestion-bubble:hover {
+  background-color: #357AE8;
+}
+
 .results-list {
   width: 600px;
   margin: 20px auto;
@@ -95,4 +129,9 @@ body {
 
 .pagination-link:hover:not(.current) {
   background-color: #ddd;
+}
+
+.spacer {
+  visibility: hidden;
+  height: 20px;
 }

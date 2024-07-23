@@ -1,65 +1,52 @@
 from naive_retriever import get_result
-from rocksdict import Rdict
-from query_postprocessing.related_searches import get_related_searches
-from query_postprocessing.summarise_text import get_relevant_sentences
-from datetime import datetime
-from interface import SingleResult, CompleteResult
-
-db = Rdict("../data/crawl_data")
 
 
-def combine_two_scores(score_dict1: dict[str, float], score_dict2: dict[str, float], alpha=0.5) -> dict[str, float]:
-    result: dict[str, float] = {}
+def sorted_list_combination(list1: list[(int, float)], list2: list[(int, float)], alpha=0.5) -> list[(int, float)]:
+    # final_score = alpha * score_1 + (1 - alpha) * score_2 + offset
 
-    for key, score1 in score_dict1.values():
-        if key in score_dict2:
-            result[key] = alpha * score1 + (1 - alpha) * score_dict2[key]
-            del score_dict2[key]
-        else:
-            result[key] = score1
-
-    for key, score2 in score_dict2.values():
-        result[key] = score2
-
-    return result
-
-
-def n_combined_urls(query: str, n: int, search_factor=5) -> list[str]:
-    embedding_results = get_result(query, n * search_factor)
-
-    final_sorted_urls = [result[0] for result in embedding_results]
-
-    return final_sorted_urls[:n]
-
-
-def n_search_results(query: str, n: int) -> CompleteResult:
-    retriever_start = datetime.now()
-    urls = n_combined_urls(query, n)
-    retriever_end = datetime.now()
-
-    related_searches = get_related_searches([query])
+    pointer_1 = 0
+    pointer_2 = 0
 
     results = []
-    postprocessing_start = datetime.now()
-    for url in urls:
-        doc = db.get(url)
-        important_sentences = get_relevant_sentences(doc, query)
-        results.append(SingleResult(url, important_sentences))
+    seen_indices = {}
+    result_index = 0
 
-    answers = CompleteResult(related_searches, results)
-    postprocessing_end = datetime.now()
+    while pointer_1 < len(list1) and pointer_2 < len(list2):
+        index_1, score_1 = list1[pointer_1]
+        index_2, score_2 = list2[pointer_2]
 
-    print("-------------")
-    print(f"retrieving time: {retriever_end - retriever_start}")
-    print(f"postprocessing time: {postprocessing_end - postprocessing_start}")
-    print(f"total time: {postprocessing_end - retriever_start}")
-    print("-------------")
+        # adding the score to an already seen index
+        if index_1 in seen_indices:
+            result_index_of_score = seen_indices[index_1]
+            # the previous result contains a score of list 2 (since every list should contain one doc only once)
+            previous_result = results[result_index_of_score]
+            new_score = alpha * score_1 + (1 - alpha) * previous_result[1]
+            results[result_index_of_score] = (previous_result[0], new_score)
+            pointer_1 += 1
+            continue
+        elif index_2 in seen_indices:
+            result_index_of_score = seen_indices[index_2]
+            previous_result = results[result_index_of_score]
+            new_score = alpha * previous_result[1] + (1 - alpha) * score_2
+            results[result_index_of_score] = (previous_result[0], new_score)
+            pointer_2 += 1
+            continue
 
-    return answers
+        if score_1 <= score_2:
+            results.append((index_1, score_1))
+            seen_indices[index_1] = result_index
+            pointer_1 += 1
+        else:
+            results.append((index_2, score_2))
+            seen_indices[index_2] = result_index
+            pointer_2 += 1
+
+    return results
 
 
-if __name__ == '__main__':
-    _ = n_search_results("University Tübingen", 10)
+def n_combined_urls(query: str, n: int, search_factor=5) -> list[(int, float)]:
+    embedding_results = get_result(query, n * search_factor)
 
-    _ = n_search_results("Falafel", 100)
-    # print(results)
+    return embedding_results[:n]
+
+

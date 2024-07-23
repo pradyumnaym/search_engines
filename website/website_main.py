@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_cors import CORS, cross_origin
 import os, sys
 
 import aiohttp
@@ -13,9 +12,6 @@ from main_directory.main import n_search_results
 
 # Run with flask --app website_main run  (--debug)
 app = Flask(__name__)
-#cors = CORS(app)
-#app.config['CORS_HEADERS'] = 'Content-Type'
-
 
 @app.route("/")
 def hello_world():

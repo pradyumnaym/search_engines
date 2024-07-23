@@ -35,6 +35,8 @@ data/forward_db_cp
 data/word_counts.pkl
 data/words_sorted.txt
 data/words100k.txt
+data/crawl_data
+data/titles
 
 test.ipynb
 data/falafel_result.pkl

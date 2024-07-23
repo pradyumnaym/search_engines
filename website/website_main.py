@@ -1,17 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
-from .. import interface
-import pickle
+import os, sys
 
-'''
-TODO:
+parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
+sys.path.insert(0, parent_dir)
 
-- Implement related queries
-- Include new dataformat
-- Try Iframe stuff
-- Maybe Logo
-
-
-'''
+from main_directory.main import n_search_results
 
 # Run with flask --app website_main run  (--debug)
 app = Flask(__name__)
@@ -35,7 +28,7 @@ def results():
     total_results = 100
 
     # results = interface.get_websites(query, count=total_results)
-    result = interface.get_websites(query, total_results)
+    result = n_search_results(query, total_results)
     suggested_queries = result.related_queries[0]
     results = result.results
 

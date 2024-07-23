@@ -4,12 +4,14 @@ import pickle
 '''
 Iterface between website and query_postprocessing-engine logic.
 
+
 Implement a function to get a website-representation for a given query
-The representation should conain useful information to display
+The representation should contain useful information to display
 '''
 
 
 class SingleResult:
+
     def __init__(self, url: str, important_sentences: list[str]):
         self.url = url
         self.important_sentences = important_sentences
@@ -20,6 +22,31 @@ class CompleteResult:
     def __init__(self, related_queries: list[list[list[str]]], results: list[SingleResult]):
         self.related_queries = related_queries
         self.results = results
+
+=======
+    def __init__(self, url: str, score, important_sentences: list[str]):
+        self.url = url
+        self.score = score
+        self.important_sentences = important_sentences
+
+
+class CompleteResult:
+    def __init__(self, related_queries: list[list[str]], results: list[SingleResult]):
+        self.related_queries = related_queries
+        self.results = results
+
+    def print_complete_results(self):
+        for result in self.results:
+            print(f"--- {result.url}, with score {result.score}")
+            print(result.important_sentences)
+            print("---------")
+
+    def output_str(self, output_file, query_num=0):
+        result_rank = 1
+        for result in self.results:
+            output_file.write(f"{query_num}\t{result_rank}\t{result.url}\t{result.score}\n")
+            result_rank += 1
+
 
 
 class DocInfo:
@@ -34,6 +61,7 @@ class DocInfo:
 
         doc_string = doc_string[:-1]  # removing the last space
         return doc_string
+
 
 
 # This is a dummy
@@ -78,3 +106,4 @@ if __name__ == "__main__":
     with open("../data/falafel_result.pkl", "rb") as f:
         result = pickle.load(f)
     print(result)
+=======

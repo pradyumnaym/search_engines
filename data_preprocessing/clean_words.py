@@ -6,14 +6,13 @@ With this, the size of index and inverted index can be reduced
 import pickle
 from rocksdict import Rdict
 import time
-import numpy as np
 import os
 import sys
 # Add the parent directory to the system path
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 sys.path.insert(0, parent_dir)
 import interface
-from preprocess import get_size
+from data_preprocessing.general_preprocessing import get_size
 
 
 #forward_path = "../data/forward_db"

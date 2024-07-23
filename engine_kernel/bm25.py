@@ -3,9 +3,7 @@ This file contains functions to calculate the bm25-value of a query, document pa
 As well as get the n best matching documents for a query
 '''
 
-from preprocess import get_size
-import preprocess
-import pickle
+import data_preprocessing.general_preprocessing as preprocessing
 from rocksdict import Rdict
 import time
 import os
@@ -15,24 +13,19 @@ import numpy as np
 # Add the parent directory to the system path
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 sys.path.insert(0, parent_dir)
-import interface
 
 
 # variables needed
-inverted_index = {}
-backward_db = {}
-doc_count = 0
 avg_doc_len = 0
 doc_len = {}
 
-index_path = "../data/bm25/inverted_index50k"
-backward_path = "../data/backward_db"
-doc_len_path = "../data/bm25/doc_len.pkl"
+index_path = "../data/runtime_data/inverted_index50k"
+backward_path = "../data/runtime_data/backward_db"
+doc_len_path = "../data/runtime_data/doc_len.pkl"
 
 
 inverted_index = Rdict(index_path)
-backward_db = Rdict(backward_path)
-with open("../data/bm25/doc_len.pkl", 'rb') as f:
+with open("../data/runtime_data/doc_len.pkl", 'rb') as f:
     doc_len = pickle.load(f)
 
 doc_count = len(doc_len.keys())
@@ -45,7 +38,7 @@ avg_doc_len = counter / doc_count
 
 def get_preselection(query: list) -> tuple[set, dict]:
     '''
-    Preselect websites that contain at least one word of teh query for better perfomrance
+    Preselect websites that contain at least one word of teh query for better performance
     It also returns a smaller inverted index that contains all necessary information
     Instead of urls, indices are used
 
@@ -101,7 +94,7 @@ def calc_bm25(index, query, document, k=1.5, b=0.75):
 
 def _insert(matches: list, max_size: int, match):
     '''
-    Insert a idx, value pair into a sorted list with a fixed size
+    Insert an idx, value pair into a sorted list with a fixed size
 
     :param matches: sorted list where items should be inserted into
     :param max_size: maximum size of the list
@@ -109,12 +102,12 @@ def _insert(matches: list, max_size: int, match):
 
     :return: Sorted list with match inserted
     '''
-    score = match['score']
+    score = match[1]
     output = matches
     idx = 0
     for m in matches:
         # if this is not the place for match, increment i
-        if m['score'] > score:
+        if m[1] > score:
             idx += 1
         else:
             break
@@ -137,14 +130,14 @@ def retrieve(query: str, n=100) -> list:
 
     :return: List of urls and scores
     '''
-    query = preprocess.preprocess(query)
+    query = preprocessing.preprocess(query)
     print(query)
     websites, small_index = get_preselection(query)
     matches = []
 
     for url_idx in list(websites):
         score = calc_bm25(small_index, query, url_idx)
-        matches = _insert(matches, n, {'url': backward_db[url_idx], 'score': score})
+        matches = _insert(matches, n, (url_idx, score))
 
     return matches
 
@@ -154,7 +147,6 @@ def close():
     Close databases
     '''
     inverted_index.close()
-    backward_db.close()
 
 
 if __name__ == '__main__':

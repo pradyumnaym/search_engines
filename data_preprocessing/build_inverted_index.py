@@ -9,13 +9,11 @@ All blocks have to be merged later (takes about an hour)
 import pickle
 from rocksdict import Rdict
 import time
-import numpy as np
 import os
 import sys
 # Add the parent directory to the system path
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 sys.path.insert(0, parent_dir)
-import interface
 
 '''
 Inverted index will be a dict of form:
@@ -28,15 +26,12 @@ The idf can be caclulated with: len(inv_idx[word])
 '''
 
 forward_path = "../data/bm25/words50k"  # use preprocessed database
-backward_path = "../data/backward_db"
+backward_path = "../data/runtime_data/backward_db"
 dest_path = "../data/bm25/inverted100k"
 doc_len_path = "../data/bm25/doc_len100k"
 
 # load and create dbs
 forward_db = Rdict(forward_path)
-# backward_db = Rdict(backward_path)
-# inverted = Rdict(dest_path)
-# doc_len = Rdict(doc_len_path) # save word_counts of every document
 inverted = {}
 doc_len = {}
 
@@ -118,6 +113,3 @@ with open("../data/bm25/doc_len.pkl", "wb") as f:
 
 # close databases
 forward_db.close()
-#backward_db.close()
-#inverted.close()
-#doc_len.close()

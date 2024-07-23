@@ -1,6 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-KEEP_MODEL_IN_GPU = False
+KEEP_MODEL_IN_GPU = True
+huggingface_token = "<Token>"
 
 def generate_related_queries_prompt(query):
     """
@@ -26,9 +27,11 @@ Please give me the top 5 related queries related to this query. Please print the
 Please keep the related searches diverse, without redundancies, and do not include any thing else (not even numbering).
 The related queries are:"""
 
+
 if KEEP_MODEL_IN_GPU:
-    model = AutoModelForCausalLM.from_pretrained(
-        "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True
+    preloaded_model = AutoModelForCausalLM.from_pretrained(
+        "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True,
+        token=huggingface_token
     )
 
 
@@ -46,12 +49,17 @@ def get_related_searches(query_list):
     """
     prompts = list(map(generate_related_queries_prompt, query_list))
 
-    if not KEEP_MODEL_IN_GPU:
+    if KEEP_MODEL_IN_GPU:
+        model = preloaded_model
+    else:
         model = AutoModelForCausalLM.from_pretrained(
-            "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True
+            "mistralai/Mistral-7B-Instruct-v0.3", device_map="cuda", load_in_4bit=True,
+            token=huggingface_token
         )
 
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3", padding_side="left")
+
+    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3",
+                                              padding_side="left", token=huggingface_token)
     tokenizer.pad_token = tokenizer.eos_token  # Most LLMs don't have a pad token by default
 
     model_inputs = tokenizer(

@@ -38,7 +38,7 @@ RETRY_FAILED = False
 
 # load the frontier URLs
 
-with open('../data/frontier_urls.pkl', 'rb') as f:
+with open('../data/crawling_data/frontier_urls.pkl', 'rb') as f:
     frontier = pickle.load(f)
 
 print(f"Loaded {len(frontier)} URLs from the frontier")
@@ -63,8 +63,8 @@ current_crawl_state = {
 
 del frontier
 
-if os.path.exists('../data/crawl_state.pkl'):
-    with open('../data/crawl_state.pkl', 'rb') as f:
+if os.path.exists('../data/crawling_data/crawl_state.pkl'):
+    with open('../data/crawling_data/crawl_state.pkl', 'rb') as f:
         current_crawl_state = pickle.load(f)
 
 if RETRY_FAILED:
@@ -80,8 +80,8 @@ if RETRY_FAILED:
 # We store the results of the crawl in a `rocksDB` instance, which is a simple key-value store. We use the `rocksdict` library that provides a nice, dict-like interface to the key-value store. This takes care of caching data on memory, and flushing the results to the database as required.
 
 # open the dictionary file
-db = Rdict('../data/crawl_data')
-db_titles = Rdict('../data/titles')
+db = Rdict('../data/crawling_data/crawl_data')
+db_titles = Rdict('../data/runtime_data/titles')
 
 # Save the crawl_state file in a subprocess - saves time.
 p = None

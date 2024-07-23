@@ -1,12 +1,12 @@
-import pickle
-import os
-import time
 from rocksdict import Rdict
+import time
+# from ftlangdetect import detect
+from interface import DocInfo
 
-
+# punctuation that should be removed
 punc = '''|!()-[]{};:'",<>./?@#$%^&*_~\\“”’‘'''
 # load basic stopword-file
-with open('../data/stopwords.txt', 'r') as f:
+with open('../data/runtime_data/stopwords.txt', 'r') as f:
     stopwords = f.read().splitlines()
 
 
@@ -79,7 +79,7 @@ def preprocess(text) -> list:
         illegal = is_number(w) or is_sus(w) or (w in stopwords)
         if w != "" and not illegal:
             output.append(w)
-    
+
     return output
 
 
@@ -110,46 +110,64 @@ def get_size(start_path='.', unit='bytes'):
     return f'{round(total_size_bytes / 1024 ** exponents_map[unit], 3)}{unit}'
 
 
-if __name__ == "__main__":
-    # --------------------------------------------------------------------------------------------------------------------------------
-    
-    # Edit here
-    
-    
-    # database with all crawled websites
-    db = Rdict('../data/crawl_data')
-    
-    with open('../data/crawl_state.pkl', 'rb') as f:
-        crawl_state = pickle.load(f)
-    
-    # get all relevant documents
-    #  
-    # urls need to be all of them
-    #
-    # 
-    urls = list(crawl_state['visited']) # also include english rejected
-    print(len(urls))
-    
-    print(f"Preprocessing {len(urls)} urls")
-    # This is the output Rdict
-    db_preprocessed = Rdict("../data/prep_data")
-    
-    i = 1
-    start_ts = time.time()
-    for url in urls:
-        text = db[url]
-        if text:
-            db_preprocessed[url] = preprocess(text)
-        
-        if i  % 50 == 0:
-            duration_s = time.time() - start_ts
-            total_duration_s = (duration_s / i) * len(urls)
-            print(f"Preprocessed {i} of {len(urls)} Websites.")
-            print(f"Estimated time: {duration_s / 60:.1f}m of {total_duration_s / 60:.1f}m")
-            db_preprocessed.flush()
-        i += 1
-    
-    
-    # --------------- Don't forget to close Rdict --------------------------
-    db_preprocessed.close()
-    db.close()
+def init_forward_database(doc_db_path: str, forward_db_path: str, batch_size=5000):
+    with Rdict(doc_db_path) as doc_db, Rdict(forward_db_path) as forward_db:
+        # forward_db with url -> DocInfo[doc_index, doc]
+        print("all databases loaded")
+
+        expected_length = 2800000
+
+        iterations = 1
+        doc_index = 0
+        start_ts = time.time()
+        for url, doc in doc_db.items():
+            if url in forward_db:
+                # already added, this program was already started before
+                continue
+
+            if doc: # and doc != "" and (detect(doc.replace('\n', ' '), low_memory=True)['lang'] == 'en'):
+                forward_db[url] = DocInfo(doc_index, preprocess(doc))
+                # backward_db[doc_index] = url
+                doc_index += 1
+
+            if iterations % batch_size == 0:
+                duration_s = time.time() - start_ts
+                current_speed = (iterations / duration_s) * 60
+                print("-----------")
+                print(f"Preprocessed {iterations} Websites, {doc_index} of them were non empty.")
+                print(f"average documents per minute: {current_speed:.2f}")
+                print(f"with the expected length of {expected_length} this will take {(expected_length - iterations) / current_speed:.2f} minutes")
+                forward_db.flush()
+                # backward_db.flush()
+            iterations += 1
+
+
+def init_backward_database(forward_db_path: str, backward_db_path: str, batch_size=5000):
+    with Rdict(forward_db_path) as forward_db, Rdict(backward_db_path) as backward_db:
+        # backward_db with doc_index -> url
+        iterations = 1
+        start_ts = time.time()
+        for url, doc_info in forward_db.items():
+            if url in backward_db:
+                continue
+
+            backward_db[doc_info.doc_index] = url
+
+            if iterations % batch_size == 0:
+                duration_s = time.time() - start_ts
+                current_speed = (iterations / duration_s) * 60
+                print("-----------")
+                print(f"Created back link for {iterations} Websites")
+                print(f"average documents per minute: {current_speed:.2f}")
+                backward_db.flush()
+            iterations += 1
+
+
+# --------------------------------------------------------------------------------------------------------------------------------
+
+
+if __name__ == '__main__':
+    # init_forward_database('../data/crawl_data', '../data/forward_db')
+    init_backward_database('../data/runtime_data/forward_db', '../data/runtime_data/backward_db')
+
+

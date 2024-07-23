@@ -1,7 +1,7 @@
 import pickle
 
 
-with open('../data/crawl_state.pkl', 'rb') as f:
+with open('../data/crawling_data/crawl_state.pkl', 'rb') as f:
     d = pickle.load(f)
 
 new_frontier = []
@@ -20,5 +20,5 @@ d['frontier'] = new_frontier
 print(d['frontier'][0])
 print("New frontier length: ", len(d['frontier']))
 
-with open('../data/crawl_state.pkl', 'wb') as f:
+with open('../data/crawling_data/crawl_state.pkl', 'wb') as f:
     pickle.dump(d, f)

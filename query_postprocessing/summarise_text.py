@@ -43,7 +43,7 @@ def get_relevant_sentences(text, keywords):
     sentences.sort(key=lambda x: x[1], reverse=True)
 
     # filter out low similarity sentences
-    sentences = [sent[0] for sent in sentences if sent[1] > 0.6]
+    sentences = [sent[0] for sent in sentences if sent[1] > 0.2]
     sentences = [str(sent) for sent in sentences]
     
     return sentences[:5]
@@ -81,7 +81,7 @@ def get_relevant_sentences_parallel(texts, keywords):
 if __name__ == "__main__":
     import random, pickle
 
-    with open("../data/values_sample.pkl", "rb") as f:
+    with open("./data/runtime_data/values_sample.pkl", "rb") as f:
         values = pickle.load(f)
 
     text = random.choice(values)

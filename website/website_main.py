@@ -1,7 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_cors import CORS, cross_origin
-
-# import interface to use search engine backend
 from .. import interface
 import pickle
 

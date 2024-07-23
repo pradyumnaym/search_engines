@@ -36,7 +36,7 @@ def n_search_results(query: str, n: int, search_factor=5) -> CompleteResult:
     print(f"total time: {postprocessing_end - retriever_start}")
     print("-------------")
 
-    return answers
+    return answers[:n]
 
 
 def interactive_exam_file_creation():
@@ -51,10 +51,4 @@ def interactive_exam_file_creation():
 
 
 if __name__ == '__main__':
-    # import pickle
-    #  = n_search_results("University Tübingen", 10)
-
-    complete_result = n_search_results("Falafel", 100)
-    complete_result.print_complete_results()
-    # with open("./falafel_result.pkl", "rb") as outfile:
-    #     pickle.dump(complete_result, outfile)
+    interactive_exam_file_creation()

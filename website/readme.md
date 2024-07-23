@@ -1,5 +1,6 @@
 Here is all code needed for the website
 
-Please install the requirements in `crawl` and then also install the requirements in this folder.
+Please create a virtual environment and install the requirements in `crawl` using `pip install -r requirements.txt` and then also install the requirements in this folder.
 
-Start website with command: "flask --app website_main run  (--debug)"
+## Running the UI
+Start website with command: `flask --app website_main run `

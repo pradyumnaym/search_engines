@@ -6,7 +6,7 @@ from interface import DocInfo
 # punctuation that should be removed
 punc = '''|!()-[]{};:'",<>./?@#$%^&*_~\\“”’‘'''
 # load basic stopword-file
-with open('../data/stopwords.txt', 'r') as f:
+with open('../data/runtime_data/stopwords.txt', 'r') as f:
     stopwords = f.read().splitlines()
 
 

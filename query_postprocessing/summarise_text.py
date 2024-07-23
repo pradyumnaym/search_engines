@@ -81,7 +81,7 @@ def get_relevant_sentences_parallel(texts, keywords):
 if __name__ == "__main__":
     import random, pickle
 
-    with open("../data/crawling_data/values_sample.pkl", "rb") as f:
+    with open("./data/runtime_data/values_sample.pkl", "rb") as f:
         values = pickle.load(f)
 
     text = random.choice(values)

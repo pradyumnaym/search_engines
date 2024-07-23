@@ -6,7 +6,6 @@ With this, the size of index and inverted index can be reduced
 import pickle
 from rocksdict import Rdict
 import time
-import numpy as np
 import os
 import sys
 # Add the parent directory to the system path

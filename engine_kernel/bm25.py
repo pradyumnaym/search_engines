@@ -16,20 +16,16 @@ sys.path.insert(0, parent_dir)
 
 
 # variables needed
-inverted_index = {}
-backward_db = {}
-doc_count = 0
 avg_doc_len = 0
 doc_len = {}
 
-index_path = "../data/bm25/inverted_index50k"
+index_path = "../data/runtime_data/inverted_index50k"
 backward_path = "../data/runtime_data/backward_db"
-doc_len_path = "../data/bm25/doc_len.pkl"
+doc_len_path = "../data/runtime_data/doc_len.pkl"
 
 
 inverted_index = Rdict(index_path)
-backward_db = Rdict(backward_path)
-with open("../data/bm25/doc_len.pkl", 'rb') as f:
+with open("../data/runtime_data/doc_len.pkl", 'rb') as f:
     doc_len = pickle.load(f)
 
 doc_count = len(doc_len.keys())
@@ -42,7 +38,7 @@ avg_doc_len = counter / doc_count
 
 def get_preselection(query: list) -> tuple[set, dict]:
     '''
-    Preselect websites that contain at least one word of teh query for better perfomrance
+    Preselect websites that contain at least one word of teh query for better performance
     It also returns a smaller inverted index that contains all necessary information
     Instead of urls, indices are used
 
@@ -141,7 +137,7 @@ def retrieve(query: str, n=100) -> list:
 
     for url_idx in list(websites):
         score = calc_bm25(small_index, query, url_idx)
-        matches = _insert(matches, n, (backward_db[url_idx], score))
+        matches = _insert(matches, n, (url_idx, score))
 
     return matches
 
@@ -151,7 +147,6 @@ def close():
     Close databases
     '''
     inverted_index.close()
-    backward_db.close()
 
 
 if __name__ == '__main__':

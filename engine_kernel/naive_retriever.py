@@ -31,7 +31,7 @@ def naive_k_nearest_neighbor_search(embeddings: np.ndarray, query: np.ndarray, k
     return top_k_values.numpy(), top_k_embeddings.numpy()
 
 
-def get_result(query: str, n_results: int, embeddings_db_path="../data/embeddings_db"):
+def get_result(query: str, n_results: int, embeddings_db_path="../data/runtime_data/embeddings_db"):
     """
     Returns the top {n_results} results for the given query.
     The query is embedded and then a k_nearest neighbor query_postprocessing is performed.

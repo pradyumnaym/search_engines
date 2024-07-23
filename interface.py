@@ -11,11 +11,11 @@ The representation should contain useful information to display
 
 
 class SingleResult:
-    def __init__(self, url: str, score, important_sentences: list[str]):
+    def __init__(self, url: str, score, title, important_sentences: list[str]):
         self.url = url
         self.important_sentences = important_sentences
         self.score = score
-        self.title = "No Title"
+        self.title = title
 
 
 class CompleteResult:

@@ -8,6 +8,7 @@ from interface import *
 
 forward_db = Rdict("../data/runtime_data/forward_db", access_type=AccessType.read_only())
 backward_db = Rdict("../data/runtime_data/backward_db", access_type=AccessType.read_only())
+title_db = Rdict("../data/runtime_data/titles", access_type=AccessType.read_only())
 
 
 # Returns the best matching {n} websites for query q
@@ -23,9 +24,13 @@ def n_search_results(query: str, n: int, search_factor=5) -> CompleteResult:
     for doc_index, score in simple_results:
         url = backward_db[doc_index]
         doc_info: DocInfo = forward_db[url]
+        try:
+            title = title_db[url]
+        except KeyError:
+            title = "Not title found"
 
         important_sentences = get_relevant_sentences(doc_info.return_doc_as_text(), query)
-        results.append(SingleResult(url, score, important_sentences))
+        results.append(SingleResult(url, score, title, important_sentences))
 
     answers = CompleteResult(related_searches, results[:n])
     postprocessing_end = datetime.now()

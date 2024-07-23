@@ -85,7 +85,7 @@ async def get_url_content(url, session):
 
 @app.route("/results")
 #@cross_origin()
-def results():
+async def results():
     query = request.args.get('query')
     page = int(request.args.get('page', 1))
     per_page = 10
@@ -112,7 +112,7 @@ def results():
     paginated_results = results[start:end]
 
 
-    urls = [x['url'] for x in paginated_results[page]]
+    urls = [x.url for x in paginated_results]
 
     connector = aiohttp.TCPConnector(limit=None)
     async with aiohttp.ClientSession(connector=connector) as session:

@@ -1,23 +1,38 @@
-from engine_kernel.combined_results import n_search_results
+from engine_kernel.combined_results import n_combined_urls
+from query_postprocessing.related_searches import get_related_searches
+from query_postprocessing.summarise_text import get_relevant_sentences
+from rocksdict import Rdict
+from datetime import datetime
 
 '''
 Iterface between website and query_postprocessing-engine logic.
 
 Implement a function to get a website-representation for a given query
-The representation should conain useful information to display
+The representation should contain useful information to display
 '''
 
 
+forward_db = Rdict("./data/forward_db")
+backward_db = Rdict("./data/backward_db")
+
+
 class SingleResult:
-    def __init__(self, url: str, important_sentences: list[str]):
+    def __init__(self, url: str, score, important_sentences: list[str]):
         self.url = url
+        self.score = score
         self.important_sentences = important_sentences
 
 
 class CompleteResult:
-    def __init__(self, related_queries: list[list[list[str]]], results: list[SingleResult]):
+    def __init__(self, related_queries: list[list[str]], results: list[SingleResult]):
         self.related_queries = related_queries
         self.results = results
+
+    def print_complete_results(self):
+        for result in self.results:
+            print(f"--- {result.url}, with score {result.score}")
+            print(result.important_sentences)
+            print("---------")
 
 
 class DocInfo:
@@ -34,27 +49,40 @@ class DocInfo:
         return doc_string
 
 
-
-
-#  example representation
-example_website = {
-    'title': "Some title",
-    'url': "http://example.com/",
-    'snippet': "Text that descirbes the website"
-}
-
 # Returns the best matching {n} websites for query q
-def get_websites(query: str, count=100):
-    # Example websites for testing
-    return n_search_results(query, 100)
+def n_search_results(query: str, n: int) -> CompleteResult:
+    retriever_start = datetime.now()
+    simple_results = n_combined_urls(query, n)
+    retriever_end = datetime.now()
+
+    postprocessing_start = datetime.now()
+    related_searches = get_related_searches([query])
+
+    results = []
+    for doc_index, score in simple_results:
+        url = backward_db.get(doc_index)
+        doc_info = forward_db.get(url)
+
+        important_sentences = get_relevant_sentences(doc_info.return_doc_as_text(), query)
+        results.append(SingleResult(url, score, important_sentences))
+
+    answers = CompleteResult(related_searches, results)
+    postprocessing_end = datetime.now()
+
+    print("-------------")
+    print(f"retrieving time: {retriever_end - retriever_start}")
+    print(f"postprocessing time: {postprocessing_end - postprocessing_start}")
+    print(f"total time: {postprocessing_end - retriever_start}")
+    print("-------------")
+
+    return answers
 
 
-# Returns examples to debug website
-def get_examples(query, count):
-    example_results = []
-    for i in range(1, count + 1):
-        res = {'title': f"Result {i} for query '{query}'",
-               'url': f"http://example.com/{i}",
-               'snippet': f"This is a snippet for {i}. It provides a brief description of the result. Let's try if it is able to display two lines as well."}
-        example_results.append(res)
-    return example_results
+if __name__ == '__main__':
+    import pickle
+    #  = n_search_results("University Tübingen", 10)
+
+    complete_result = n_search_results("Falafel", 100)
+    complete_result.print_complete_results()
+    with open("./falafel_result.pkl", "rb") as outfile:
+        pickle.dump(complete_result, outfile)

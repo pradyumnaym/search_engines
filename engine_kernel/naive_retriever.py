@@ -3,11 +3,10 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from rocksdict import Rdict, AccessType
 
-KEEP_MODEL_IN_GPU = True
-if KEEP_MODEL_IN_GPU:
-    model = SentenceTransformer("all-mpnet-base-v2", device="cuda")
+model = SentenceTransformer("all-mpnet-base-v2", device="cuda")
 
-loaded_embeddings = np.load("../data/embeddings/combined_embeddings.npy").astype(np.float16)
+loaded_embeddings = np.load("../data/embeddings/combined_embedding_2.npy").astype(np.float16)
+print("model and embeddings loaded")
 
 
 def naive_k_nearest_neighbor_search(embeddings: np.ndarray, query: np.ndarray, k: int,
@@ -23,15 +22,16 @@ def naive_k_nearest_neighbor_search(embeddings: np.ndarray, query: np.ndarray, k
 
     :return: a tuple of the distance of the nearest neighbors and the indices of the nearest neighbors.
     """
+
     torch_embeddings = torch.from_numpy(embeddings).to(device)
     torch_query = torch.from_numpy(query).to(device)
 
-    distance = torch.sum(torch.square(torch_embeddings - torch_query), 1)
-    top_k_values, top_k_indices = torch.topk(distance, k, largest=False)
-    return top_k_values.numpy(), top_k_indices.numpy()
+    cosine_distance = torch.tensordot(torch_query, torch_embeddings.T, dims=1)
+    top_k_values, top_k_embeddings = torch.topk(cosine_distance, k, largest=True)
+    return top_k_values.numpy(), top_k_embeddings.numpy()
 
 
-def get_result(query: str, n_results: int, db_path="../data/new_db"):
+def get_result(query: str, n_results: int, embeddings_db_path="../data/embeddings_db"):
     """
     Returns the top {n_results} results for the given query.
     The query is embedded and then a k_nearest neighbor query_postprocessing is performed.
@@ -39,57 +39,25 @@ def get_result(query: str, n_results: int, db_path="../data/new_db"):
 
     :param query: query as a string :param n_results: (optional) number of results to return (standard is 100)
     :param n_results: (optional) number of results to return (standard is 100)
-    :param db_path: (optional) the path to the database (standard is "../data/new_db")
+    :param embeddings_db_path: (optional) the path to the database (standard is "../data/new_db")
 
     :return: the top {n_results} results for the given query, consisting of the url and actual document
     """
-    # if not KEEP_MODEL_IN_GPU:
-    #     model = SentenceTransformer("all-mpnet-base-v2", device="cuda")
-
-    db = Rdict(db_path, access_type = AccessType.read_only())
+    embeddings_db = Rdict(embeddings_db_path, access_type=AccessType.read_only())
 
     embedded_query = model.encode(query).astype(np.float16)
 
-    # if not KEEP_MODEL_IN_GPU:
-    #     del model
+    top_k_scores, top_k_embeddings = naive_k_nearest_neighbor_search(loaded_embeddings, embedded_query, n_results)
+    embedding_indices = top_k_embeddings.tolist()
+    result_indices = list(map(lambda x: embeddings_db[x], embedding_indices))
 
-    top_k_scores, top_k_indices = naive_k_nearest_neighbor_search(loaded_embeddings, embedded_query, n_results)
-    result_urls = []
-    result_scores = top_k_indices.tolist()
+    seen_indices = []
+    result = []
+    for index, score in zip(result_indices, top_k_scores):
+        if index not in seen_indices:
+            result.append((index, score))
+            seen_indices.append(index)
 
-    for result_index in result_scores:
-        result_urls.append(db[result_index][0])
-
-    return list(zip(result_urls, result_scores))
-
-
-def print_result(results, query=None):
-    """
-    Prints the results and optional query to the console.
-
-    :param results: the results for the given query
-    :param query: (optional) the query
-
-    :return: None
-    """
-    if query is not None:
-        print(f"Search results for \"{query}\"")
-        print("\n")
-
-    for url, doc in results:
-        print(url)
-        print(doc)
-        print("\n------------------------------------------")
-        print("\n")
-
-
-if __name__ == '__main__':
-    query1 = "university tuebingen"
-    results1 = get_result(query1, n_results=10)
-    print_result(results1, query=query1)
-
-    query2 = "Boris Palmer"
-    results2 = get_result(query2, n_results=10)
-    print_result(results2, query=query2)
+    return result
 
 

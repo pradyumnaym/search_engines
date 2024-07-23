@@ -93,7 +93,7 @@ async def results():
         if text == "":
             text = "Sadly there couldn't be found any interesting sentences to display here, if there where any, you could read them now. Instead you just wasted your time reading a lot of nonsens that is just so longto check if hat could cause any problems with formatting."
     
-        results[i].important_sentences = text
+        results[i].important_sentences = text[:500]
         
     start = (page - 1) * per_page
     end = start + per_page

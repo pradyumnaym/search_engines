@@ -27,7 +27,7 @@ def n_search_results(query: str, n: int, search_factor=5) -> CompleteResult:
         important_sentences = get_relevant_sentences(doc_info.return_doc_as_text(), query)
         results.append(SingleResult(url, score, important_sentences))
 
-    answers = CompleteResult(related_searches, results)
+    answers = CompleteResult(related_searches, results[:n])
     postprocessing_end = datetime.now()
 
     print("-------------")
@@ -44,17 +44,11 @@ def interactive_exam_file_creation():
         query = input("Please enter a query: ")
         query_num = 1
         while query != "q":
-            result = n_search_results(query, 100)
+            result = n_search_results(query, 100, search_factor=1)
             result.output_str(file, query_num=query_num)
             query_num += 1
             query = input("Please enter next query: ")
 
 
 if __name__ == '__main__':
-    # import pickle
-    #  = n_search_results("University Tübingen", 10)
-
-    complete_result = n_search_results("Falafel", 100)
-    complete_result.print_complete_results()
-    # with open("./falafel_result.pkl", "rb") as outfile:
-    #     pickle.dump(complete_result, outfile)
+    interactive_exam_file_creation()

@@ -36,7 +36,7 @@ def n_search_results(query: str, n: int, search_factor=5) -> CompleteResult:
     print(f"total time: {postprocessing_end - retriever_start}")
     print("-------------")
 
-    return answers
+    return answers[:n]
 
 
 def interactive_exam_file_creation():

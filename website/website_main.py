@@ -70,7 +70,7 @@ async def get_url_content(url, session):
     return_value = None
 
     try:
-        async with session.get(url, timeout=30, headers=headers) as response:
+        async with session.get(url, timeout=15, headers=headers) as response:
             if url.endswith('.pdf'):
                 return_value = await response.read()
             else:
